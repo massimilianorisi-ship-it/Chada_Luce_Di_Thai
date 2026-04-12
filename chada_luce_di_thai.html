@@ -530,7 +530,10 @@ function loadFromSheets(){
   var n=0;
   function done(){
     if(++n>=2){
-      syncBanner(false);
+      // Show count in banner briefly
+      var b=document.getElementById('sync-banner');
+      if(b){b.textContent='✓ Sincronizzati '+bks.length+' appuntamenti';b.style.color='#90d070';}
+      setTimeout(function(){syncBanner(false);if(b)b.style.color='rgba(201,162,80,.85)';},1500);
       // Aggiorna sempre calendario e lista dopo la sync, indipendentemente dalla tab attiva
       renderCal();
       renderPubAnn();
@@ -556,6 +559,8 @@ function loadFromSheets(){
         };
       });
       nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;
+      // Normalize dates to ensure strict YYYY-MM-DD format
+      bks.forEach(function(b){b.date=String(b.date).trim().slice(0,10);b.time=String(b.time).trim().slice(0,5);});
     }
     done();
   });
@@ -595,11 +600,11 @@ var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===20&&m>30)&&h<=20){s.push((h<1
 function fd(d){var p=d.split('-');return parseInt(p[2])+' '+MO[parseInt(p[1])-1]+' '+p[0];}
 function tm(t){var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
 function tt(m){var h=Math.floor(m/60),mm=m%60;return(h<10?'0':'')+h+':'+(mm===0?'00':'30');}
-function dbk(d){return bks.filter(function(b){return b.date===d;});}
+function dbk(d){var nd=String(d).trim().slice(0,10);return bks.filter(function(b){return String(b.date).trim().slice(0,10)===nd;});}
 function getDur(){var s=document.getElementById('pfdur');return s?parseInt(s.value):60;}
 
 function validSlots(date,dur){
-  var bb=bks.filter(function(b){return b.date===date;});
+  var bb=bks.filter(function(b){return String(b.date).trim().slice(0,10)===String(date).trim().slice(0,10);});
   return SLOTS.filter(function(s){
     var sm=tm(s);
     if(sm+dur>tm('20:30'))return false;
