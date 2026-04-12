@@ -527,25 +527,21 @@ function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style
 function loadFromSheets(){
   if(!sheetsOn())return;
   syncBanner(true);
-  var n=0;
-  function done(){
-    if(++n>=2){
-      // Show count in banner briefly
-      var b=document.getElementById('sync-banner');
-      if(b){b.textContent='✓ Sincronizzati '+bks.length+' appuntamenti';b.style.color='#90d070';}
-      setTimeout(function(){syncBanner(false);if(b)b.style.color='rgba(201,162,80,.85)';},1500);
-      // Aggiorna sempre calendario e lista dopo la sync, indipendentemente dalla tab attiva
-      renderCal();
-      renderPubAnn();
-      updBadge();
-      if(isAdmin){renderList();renderAnnAdmin();}
-      // Se la detail del giorno era aperta, aggiorna
-      if(curDD)showDD(curDD);
-    }
+  var gotAll=false,gotAnns=false;
+  function tryDone(){
+    if(!gotAll||!gotAnns)return;
+    // Entrambe le risposte ricevute: aggiorna UI
+    renderCal();
+    renderPubAnn();
+    updBadge();
+    if(isAdmin){renderList();renderAnnAdmin();}
+    if(curDD)showDD(curDD);
+    var b=document.getElementById('sync-banner');
+    if(b){b.textContent='✓ '+bks.length+' appuntamenti sincronizzati';b.style.color='#90d070';}
+    setTimeout(function(){syncBanner(false);var b=document.getElementById('sync-banner');if(b)b.style.color='rgba(201,162,80,.85)';},2000);
   }
   sheetsJSONP({action:'getAll'},function(r){
-    if(r&&r.bookings){
-      // Sostituisce SEMPRE i dati (anche se array vuoto) per rimuovere i demo data
+    if(r&&Array.isArray(r.bookings)){
       bks=r.bookings.map(function(b){
         return{
           id:parseInt(b.id)||b.id,
@@ -558,14 +554,17 @@ function loadFromSheets(){
           notes:b.notes||''
         };
       });
+      bks.forEach(function(b){
+        b.date=String(b.date).trim().slice(0,10);
+        b.time=String(b.time).trim().slice(0,5);
+      });
       nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;
-      // Normalize dates to ensure strict YYYY-MM-DD format
-      bks.forEach(function(b){b.date=String(b.date).trim().slice(0,10);b.time=String(b.time).trim().slice(0,5);});
     }
-    done();
+    gotAll=true;
+    tryDone();
   });
   sheetsJSONP({action:'getAnns'},function(r){
-    if(r&&r.anns){
+    if(r&&Array.isArray(r.anns)){
       anns=r.anns.map(function(a){
         return{
           id:parseInt(a.id)||a.id,
@@ -576,7 +575,8 @@ function loadFromSheets(){
       });
       nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;
     }
-    done();
+    gotAnns=true;
+    tryDone();
   });
 }
 var MO=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
