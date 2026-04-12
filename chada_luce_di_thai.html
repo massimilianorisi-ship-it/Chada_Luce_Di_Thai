@@ -495,6 +495,34 @@ function sheetsJSONP(p,cb){
   document.head.appendChild(s);
 }
 function sheetsSave(p){if(sheetsOn())sheetsJSONP(p,function(){});}
+function parseSheetDate(val){
+  if(!val&&val!==0)return '';
+  var s=String(val);
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  // ISO string: 2026-04-11T... → take first 10 chars
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s))return s.slice(0,10);
+  // Italian DD/MM/YYYY
+  var dm=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if(dm)return dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0');
+  // Italian DD/MM/YYYY HH:MM:SS
+  var dm2=/^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+  if(dm2)return dm2[3]+'-'+dm2[2].padStart(2,'0')+'-'+dm2[1].padStart(2,'0');
+  // Sheets serial number (days since 30/12/1899)
+  var n=parseFloat(s);
+  if(!isNaN(n)&&n>40000&&n<60000){
+    var d=new Date((n-25569)*86400000);
+    var y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),day=String(d.getUTCDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+  // Try native Date parse as last resort
+  var dt=new Date(s);
+  if(!isNaN(dt.getTime())){
+    var y2=dt.getFullYear(),m2=String(dt.getMonth()+1).padStart(2,'0'),d2=String(dt.getDate()).padStart(2,'0');
+    return y2+'-'+m2+'-'+d2;
+  }
+  return s.slice(0,10);
+}
 function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style.display=v?'flex':'none';}
 function loadFromSheets(){
   if(!sheetsOn())return;
@@ -518,8 +546,8 @@ function loadFromSheets(){
       bks=r.bookings.map(function(b){
         return{
           id:parseInt(b.id)||b.id,
-          date:String(b.date).slice(0,10),
-          time:String(b.time),
+          date:parseSheetDate(b.date),
+          time:(function(t){var s=String(t||'');if(/^\d{2}:\d{2}$/.test(s))return s;var m=/^(\d{1,2}):(\d{2})/.exec(s);return m?m[1].padStart(2,'0')+':'+m[2]:s.slice(0,5);})(),
           name:b.name,svc:b.svc,
           price:parseInt(b.price)||60,
           dur:parseInt(b.dur)||60,
