@@ -339,6 +339,7 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     <div class="li"><div class="ld" style="background:#f0c870"></div>Da confermare</div>
     <div class="li"><div class="ld" style="background:#5a9e30"></div>Libero</div>
   </div>
+  <button onclick="loadFromSheets()" style="padding:6px 14px;border:.5px solid rgba(201,162,80,.4);border-radius:var(--r);background:transparent;color:rgba(201,162,80,.7);font-family:'Jost',sans-serif;font-size:11px;cursor:pointer;touch-action:manipulation" title="Sincronizza con Google Sheets">&#8635; Sync</button>
 </div>
 <div class="cg" id="cal"></div>
 <div class="ddet" id="ddet" style="display:none"><div class="ddt" id="ddt"></div><div class="sl2" id="ddsl"></div></div>
@@ -498,20 +499,49 @@ function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style
 function loadFromSheets(){
   if(!sheetsOn())return;
   syncBanner(true);
-  var n=0;function done(){if(++n>=2)syncBanner(false);}
+  var n=0;
+  function done(){
+    if(++n>=2){
+      syncBanner(false);
+      // Aggiorna sempre calendario e lista dopo la sync, indipendentemente dalla tab attiva
+      renderCal();
+      renderPubAnn();
+      updBadge();
+      if(isAdmin){renderList();renderAnnAdmin();}
+      // Se la detail del giorno era aperta, aggiorna
+      if(curDD)showDD(curDD);
+    }
+  }
   sheetsJSONP({action:'getAll'},function(r){
-    if(r&&r.bookings&&r.bookings.length){
-      bks=r.bookings.map(function(b){return{id:parseInt(b.id)||b.id,date:String(b.date).slice(0,10),time:String(b.time),name:b.name,svc:b.svc,price:parseInt(b.price)||60,dur:parseInt(b.dur)||60,status:b.status,notes:b.notes||''};});
+    if(r&&r.bookings){
+      // Sostituisce SEMPRE i dati (anche se array vuoto) per rimuovere i demo data
+      bks=r.bookings.map(function(b){
+        return{
+          id:parseInt(b.id)||b.id,
+          date:String(b.date).slice(0,10),
+          time:String(b.time),
+          name:b.name,svc:b.svc,
+          price:parseInt(b.price)||60,
+          dur:parseInt(b.dur)||60,
+          status:b.status,
+          notes:b.notes||''
+        };
+      });
       nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;
-      renderCal();if(isAdmin)renderList();updBadge();
     }
     done();
   });
   sheetsJSONP({action:'getAnns'},function(r){
-    if(r&&r.anns&&r.anns.length){
-      anns=r.anns.map(function(a){return{id:parseInt(a.id)||a.id,type:a.type,title:a.title,body:a.body,date:a.date,pub:a.pub===true||a.pub==='true'};});
+    if(r&&r.anns){
+      anns=r.anns.map(function(a){
+        return{
+          id:parseInt(a.id)||a.id,
+          type:a.type,title:a.title,
+          body:a.body,date:a.date,
+          pub:a.pub===true||a.pub==='true'
+        };
+      });
       nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;
-      renderPubAnn();if(isAdmin)renderAnnAdmin();
     }
     done();
   });
