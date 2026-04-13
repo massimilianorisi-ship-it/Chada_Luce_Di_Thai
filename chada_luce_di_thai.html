@@ -484,15 +484,21 @@ function sheetsOn(){return SHEETS_URL.length>10;}
 function sheetsJSONP(p,cb){
   var id='_c'+(++_ci);
   p.callback=id;
-  window[id]=function(d){
+  var done=false;
+  function finish(d){
+    if(done)return; done=true;
     try{delete window[id];}catch(e){}
     var s=document.getElementById(id);if(s&&s.parentNode)s.parentNode.removeChild(s);
     cb(d);
-  };
+  }
+  window[id]=function(d){finish(d);};
   var s=document.createElement('script');
-  s.id=id;s.onerror=function(){cb(null);};
+  s.id=id;
+  s.onerror=function(){finish(null);};
   s.src=SHEETS_URL+'?'+Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k]);}).join('&');
   document.head.appendChild(s);
+  // Timeout: se non risponde in 10s considera fallito
+  setTimeout(function(){finish(null);},10000);
 }
 function sheetsSave(p){if(sheetsOn())sheetsJSONP(p,function(){});}
 function parseSheetDate(val){
@@ -530,14 +536,16 @@ function loadFromSheets(){
   var gotAll=false,gotAnns=false;
   function tryDone(){
     if(!gotAll||!gotAnns)return;
-    // Entrambe le risposte ricevute: aggiorna UI
+    // Salva in localStorage come cache
+    try{localStorage.setItem('chada_bks',JSON.stringify(bks));localStorage.setItem('chada_anns',JSON.stringify(anns));}catch(e){}
+    // Aggiorna UI
     renderCal();
     renderPubAnn();
     updBadge();
     if(isAdmin){renderList();renderAnnAdmin();}
     if(curDD)showDD(curDD);
     var b=document.getElementById('sync-banner');
-    if(b){b.textContent='✓ '+bks.length+' appuntamenti sincronizzati';b.style.color='#90d070';}
+    if(b){b.textContent='✓ '+bks.length+' appuntamenti';b.style.color='#90d070';}
     setTimeout(function(){syncBanner(false);var b=document.getElementById('sync-banner');if(b)b.style.color='rgba(201,162,80,.85)';},2000);
   }
   sheetsJSONP({action:'getAll'},function(r){
@@ -585,15 +593,7 @@ var PRICES={'Energetico Thai':70,'Energetico Thai + Olio':80,'Thai Tradizione':6
 var DURS={'Energetico Thai':60,'Energetico Thai + Olio':90,'Thai Tradizione':60,'Thai Yoga':60,'Riflessologia Plantare':60,'Thai SPA Rilassante':60,'Trattamento Facciale':60};
 var BUF=30,now=new Date(),cY=now.getFullYear(),cM=now.getMonth();
 var selT=null,isAdmin=false,curDD=null,nid=8,nanid=1;
-var bks=[
-  {id:1,date:'2026-04-02',time:'10:30',name:'Sara Conti',svc:'Energetico Thai',price:70,dur:60,status:'booked',notes:''},
-  {id:2,date:'2026-04-02',time:'15:00',name:'Luca Ferrari',svc:'Thai Yoga',price:60,dur:60,status:'pending',notes:'Prima visita'},
-  {id:3,date:'2026-04-04',time:'09:00',name:'Anna Marini',svc:'Trattamento Facciale',price:60,dur:60,status:'booked',notes:''},
-  {id:4,date:'2026-04-07',time:'13:30',name:'Paolo Greco',svc:'Thai Tradizione',price:60,dur:60,status:'pending',notes:''},
-  {id:5,date:'2026-04-09',time:'18:00',name:'Elena Bruno',svc:'Energetico Thai + Olio',price:80,dur:90,status:'booked',notes:''},
-  {id:6,date:'2026-04-11',time:'10:30',name:'Roberto Mori',svc:'Riflessologia Plantare',price:60,dur:60,status:'booked',notes:''},
-  {id:7,date:'2026-04-14',time:'16:30',name:'Francesca Riva',svc:'Energetico Thai',price:70,dur:60,status:'pending',notes:''}
-];
+var bks=[];
 var anns=[];
 var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===20&&m>30)&&h<=20){s.push((h<10?'0':'')+h+':'+(m===0?'00':'30'));m+=30;if(m>=60){m=0;h++;}}return s;})();
 
@@ -863,6 +863,13 @@ document.getElementById('abkdate').min=now.toISOString().split('T')[0];
 document.getElementById('pfs').addEventListener('change',function(){selT=null;renderSlots();updSum();});
 document.getElementById('pfd').addEventListener('change',function(){selT=null;renderSlots();updSum();});
 document.getElementById('pfdur').addEventListener('change',function(){selT=null;renderSlots();updSum();updEndPreview();});
+// Carica cache localStorage subito (dati istantanei prima di Sheets)
+try{
+  var _cb=localStorage.getItem('chada_bks');
+  var _ca=localStorage.getItem('chada_anns');
+  if(_cb){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
+  if(_ca){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
+}catch(e){}
 buildAdminSlots();renderCal();renderPubAnn();updSum();
 loadFromSheets();
 (function(){
