@@ -504,17 +504,26 @@ function sheetsCall(params,cb){
     return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
   }).join('&');
   var url=SHEETS_URL+'?'+qs;
-  // Use JSONP directly - works cross-origin without CORS issues
-  _jsonp(url,cb);
+  var done=false;
+  function finish(d){if(done)return;done=true;cb(d);}
+  if(location.protocol==='https:'){
+    fetch(url)
+      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(function(d){finish(d);})
+      .catch(function(){_jsonp(url,finish);});
+  } else {
+    _jsonp(url,finish);
+  }
+  setTimeout(function(){finish(null);},20000);
 }
 
 function _jsonp(url,cb){
   var id='_sc'+(++_ci);
   var sep=url.indexOf('?')>=0?'&':'?';
   var fullUrl=url+sep+'callback='+id;
-  var called=false;
+  var done=false;
   function finish(d){
-    if(called)return; called=true;
+    if(done)return; done=true;
     try{delete window[id];}catch(e){}
     var s=document.getElementById(id);
     if(s&&s.parentNode)s.parentNode.removeChild(s);
@@ -534,7 +543,11 @@ function sheetsSave(params){
   var qs=Object.keys(params).map(function(k){
     return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
   }).join('&');
-  _jsonp(SHEETS_URL+'?'+qs,function(){});
+  if(location.protocol==='https:'){
+    fetch(SHEETS_URL+'?'+qs).catch(function(){_jsonp(SHEETS_URL+'?'+qs,function(){});});
+  } else {
+    _jsonp(SHEETS_URL+'?'+qs,function(){});
+  }
 }
 
 function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style.display=v?'flex':'none';}
@@ -566,7 +579,7 @@ function loadFromSheets(){
     if(isAdmin){renderList();renderAnnAdmin();}
     if(curDD)showDD(curDD);
     var b=document.getElementById('sync-banner');
-    if(b){b.textContent='\u2713 '+bks.length+' appuntamenti';b.style.color='#90d070';}
+    if(b){b.textContent=(bks.length>0?'\u2713 '+bks.length+' appuntamenti sync':'\u2713 Sync OK');b.style.color='#90d070';}
     setTimeout(function(){syncBanner(false);var b=document.getElementById('sync-banner');if(b)b.style.color='rgba(201,162,80,.85)';},2000);
   }
   sheetsCall({action:'getAll'},function(r){
