@@ -493,20 +493,56 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
 
 var SHEETS_URL='https://script.google.com/macros/s/AKfycbzJ1S0WPGx5A7VNBHqcixrFvrKeB7XbxiqYOaSOzuX_TohZsObNxkwKz_XF6tMiOymbIg/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
+
+var _ci=0;
+// Try fetch first (works from HTTP/HTTPS), fallback to JSONP (works from file://)
 function sheetsCall(params,cb){
   if(!sheetsOn()){cb(null);return;}
-  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  var qs=Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+  }).join('&');
   var url=SHEETS_URL+'?'+qs;
-  fetch(url)
+  var done=false;
+  function finish(d){if(done)return;done=true;cb(d);}
+  // Try fetch (works cross-origin from HTTP servers)
+  fetch(url,{redirect:'follow'})
     .then(function(r){return r.json();})
-    .then(function(d){cb(d);})
-    .catch(function(e){console.warn('Sheets fetch error:',e);cb(null);});
+    .then(function(d){finish(d);})
+    .catch(function(){
+      // fetch failed → fallback to JSONP (works from file://)
+      _jsonp(url,finish);
+    });
+  // Safety timeout
+  setTimeout(function(){finish(null);},15000);
 }
+
+function _jsonp(url,cb){
+  var id='_sc'+(++_ci);
+  // Add callback param
+  var sep=url.indexOf('?')>=0?'&':'?';
+  url=url+sep+'callback='+id;
+  var done=false;
+  function finish(d){
+    if(done)return;done=true;
+    try{delete window[id];}catch(e){}
+    var s=document.getElementById(id);
+    if(s&&s.parentNode)s.parentNode.removeChild(s);
+    cb(d);
+  }
+  window[id]=function(d){finish(d);};
+  var s=document.createElement('script');
+  s.id=id;
+  s.onerror=function(){finish(null);};
+  s.src=url;
+  document.head.appendChild(s);
+  setTimeout(function(){finish(null);},12000);
+}
+
 function sheetsSave(params){
   if(!sheetsOn())return;
-  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
-  fetch(SHEETS_URL+'?'+qs).catch(function(){});
+  sheetsCall(params,function(){});
 }
+
 function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style.display=v?'flex':'none';}
 
 function parseSheetDate(val){
