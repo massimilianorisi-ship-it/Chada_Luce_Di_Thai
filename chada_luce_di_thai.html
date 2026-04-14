@@ -337,10 +337,13 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
 <div id="pnl-cal" class="pnl">
 <div class="calhdr">
   <div class="calnav"><button class="nb" onclick="chMo(-1)">&#8249;</button><div class="calm" id="cmt"></div><button class="nb" onclick="chMo(1)">&#8250;</button></div>
-  <div class="leg">
-    <div class="li"><div class="ld" style="background:#f09090"></div>Confermato</div>
-    <div class="li"><div class="ld" style="background:#f0c870"></div>Da confermare</div>
-    <div class="li"><div class="ld" style="background:#5a9e30"></div>Libero</div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="leg">
+      <div class="li"><div class="ld" style="background:#f09090"></div>Confermato</div>
+      <div class="li"><div class="ld" style="background:#f0c870"></div>Da confermare</div>
+      <div class="li"><div class="ld" style="background:#5a9e30"></div>Libero</div>
+    </div>
+    <button onclick="loadFromSheets()" style="padding:7px 14px;border:.5px solid rgba(201,162,80,.45);border-radius:var(--r);background:rgba(201,162,80,.08);color:var(--o);font-family:'Jost',sans-serif;font-size:11px;cursor:pointer;touch-action:manipulation;letter-spacing:.06em">&#8635; Sincronizza</button>
   </div>
 </div>
 <div class="cg" id="cal"></div>
@@ -495,35 +498,23 @@ var SHEETS_URL='https://script.google.com/macros/s/AKfycbzJ1S0WPGx5A7VNBHqcixrFv
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
-// Try fetch first (works from HTTP/HTTPS), fallback to JSONP (works from file://)
 function sheetsCall(params,cb){
   if(!sheetsOn()){cb(null);return;}
   var qs=Object.keys(params).map(function(k){
     return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
   }).join('&');
   var url=SHEETS_URL+'?'+qs;
-  var done=false;
-  function finish(d){if(done)return;done=true;cb(d);}
-  // Try fetch (works cross-origin from HTTP servers)
-  fetch(url,{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){finish(d);})
-    .catch(function(){
-      // fetch failed → fallback to JSONP (works from file://)
-      _jsonp(url,finish);
-    });
-  // Safety timeout
-  setTimeout(function(){finish(null);},15000);
+  // Use JSONP directly - works cross-origin without CORS issues
+  _jsonp(url,cb);
 }
 
 function _jsonp(url,cb){
   var id='_sc'+(++_ci);
-  // Add callback param
   var sep=url.indexOf('?')>=0?'&':'?';
-  url=url+sep+'callback='+id;
-  var done=false;
+  var fullUrl=url+sep+'callback='+id;
+  var called=false;
   function finish(d){
-    if(done)return;done=true;
+    if(called)return; called=true;
     try{delete window[id];}catch(e){}
     var s=document.getElementById(id);
     if(s&&s.parentNode)s.parentNode.removeChild(s);
@@ -533,14 +524,17 @@ function _jsonp(url,cb){
   var s=document.createElement('script');
   s.id=id;
   s.onerror=function(){finish(null);};
-  s.src=url;
+  s.src=fullUrl;
   document.head.appendChild(s);
-  setTimeout(function(){finish(null);},12000);
+  setTimeout(function(){finish(null);},15000);
 }
 
 function sheetsSave(params){
   if(!sheetsOn())return;
-  sheetsCall(params,function(){});
+  var qs=Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+  }).join('&');
+  _jsonp(SHEETS_URL+'?'+qs,function(){});
 }
 
 function syncBanner(v){var b=document.getElementById('sync-banner');if(b)b.style.display=v?'flex':'none';}
