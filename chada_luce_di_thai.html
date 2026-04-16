@@ -453,8 +453,38 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     <div class="fg"><label>Orario</label><select id="abktime"></select></div>
   </div>
   <div class="f2">
-    <div class="fg"><label>Trattamento</label><select id="abksvc"><option>Energetico Thai</option><option>Energetico Thai + Olio</option><option>Thai Tradizione</option><option>Thai Yoga</option><option>Riflessologia Plantare</option><option>Thai SPA Rilassante</option><option>Trattamento Facciale</option></select></div>
-    <div class="fg"><label>Durata (min)</label><select id="abkdur"><option value="30">30</option><option value="60" selected>60</option><option value="90">90</option><option value="120">120</option></select></div>
+    <div class="fg"><label>Trattamento</label><select id="abksvc" onchange="updAbkPrice()">
+        <option value="Energetico Thai">Energetico Thai — 70€/60min</option>
+        <option value="Energetico Thai + Olio">Energetico Thai + Olio — 80€/90min</option>
+        <option value="Thai Tradizione">Thai Tradizione — 60€/60min</option>
+        <option value="Thai Yoga">Thai Yoga — 60€/60min</option>
+        <option value="Riflessologia Plantare">Riflessologia Plantare — 60€/60min</option>
+        <option value="Thai SPA Rilassante">Thai SPA Rilassante — 60€/60min</option>
+        <option value="Trattamento Facciale">Trattamento Facciale — 60€/60min</option>
+      </select></div>
+    <div class="fg"><label>Durata (min)</label><select id="abkdur" onchange="updAbkPrice()">
+        <option value="30">30 min</option>
+        <option value="60" selected>60 min</option>
+        <option value="90">90 min</option>
+        <option value="120">120 min</option>
+      </select></div>
+  </div>
+  <div class="f2" style="align-items:flex-end">
+    <div class="fg">
+      <label>Prezzo calcolato (€)</label>
+      <div style="position:relative">
+        <input id="abkprice" type="number" min="0" step="5" value="70"
+          style="padding-right:32px"
+          title="Modificabile manualmente">
+        <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--o);pointer-events:none">€</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label style="opacity:.5;font-size:8px;letter-spacing:.1em">BASE 60 MIN</label>
+      <div id="abk-price-info" style="padding:10px 12px;font-size:12px;color:rgba(201,162,80,.6);background:rgba(30,14,0,.4);border:.5px solid rgba(201,162,80,.15);border-radius:10px;line-height:1.5">
+        70€ base × 1 ora
+      </div>
+    </div>
   </div>
   <div class="fg"><label>Stato</label><select id="abkst"><option value="pending">Da confermare</option><option value="booked">Confermato</option></select></div>
   <div class="fg"><label>Note interne</label><textarea id="abknotes" placeholder="Visibili solo all'amministratore..."></textarea></div>
@@ -494,7 +524,7 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
 <script>
 
 
-var SHEETS_URL='https://script.google.com/macros/s/AKfycbwk-5-2OAzWHM6sUe_s2AsY3eZtL2ZykNyT2rX5gdhS7IxnJugfOAlHMe2uOXMotdJfRA/exec';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbzJ1S0WPGx5A7VNBHqcixrFvrKeB7XbxiqYOaSOzuX_TohZsObNxkwKz_XF6tMiOymbIg/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
@@ -744,14 +774,28 @@ function resetP(){
   document.getElementById('sc').innerHTML='<div style="font-size:12px;color:rgba(201,162,80,.38);padding:4px 0">Seleziona prima una data</div>';
   updSum();
 }
+function updAbkPrice(){
+  var svc=document.getElementById('abksvc').value;
+  var dur=parseInt(document.getElementById('abkdur').value)||60;
+  var basePrice=PRICES[svc]||60;
+  var baseDur=DURS[svc]||60;
+  // Calcolo proporzionale: prezzo base è per baseDur minuti
+  var calculated=Math.round(basePrice*(dur/baseDur)/5)*5;
+  if(calculated<basePrice)calculated=basePrice; // minimo = prezzo base
+  var inp=document.getElementById('abkprice');
+  if(inp)inp.value=calculated;
+  var info=document.getElementById('abk-price-info');
+  if(info)info.textContent=basePrice+'€ base / '+baseDur+'min × '+dur+'min = '+calculated+'€';
+}
 function adminAdd(){
   var name=document.getElementById('abkname').value.trim(),date=document.getElementById('abkdate').value;
   var time=document.getElementById('abktime').value,svc=document.getElementById('abksvc').value;
   var dur=parseInt(document.getElementById('abkdur').value),status=document.getElementById('abkst').value;
   var notes=document.getElementById('abknotes').value.trim(),n=document.getElementById('abkn');
+  var price=parseInt(document.getElementById('abkprice').value)||PRICES[svc]||60;
   if(!name||!date){n.className='noti show err';n.textContent='Inserisci nome e data.';return;}
   if(validSlots(date,dur).indexOf(time)===-1){n.className='noti show err';n.textContent='Orario '+time+' non disponibile per '+dur+' min.';return;}
-  var _nb2={id:nid++,date:date,time:time,name:name,svc:svc,price:PRICES[svc]||60,dur:dur,status:status,notes:notes};
+  var _nb2={id:nid++,date:date,time:time,name:name,svc:svc,price:price,dur:dur,status:status,notes:notes};
   bks.push(_nb2);
   sheetsSave({action:'add',id:_nb2.id,date:_nb2.date,time:_nb2.time,name:_nb2.name,svc:_nb2.svc,price:_nb2.price,dur:_nb2.dur,status:_nb2.status,notes:_nb2.notes||''});
   n.className='noti show ok';n.textContent='Aggiunto: '+name+' - '+fd(date)+' alle '+time+'.';
@@ -897,7 +941,7 @@ try{
   if(_cb&&_cb!=='[]'){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
   if(_ca&&_ca!=='[]'){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
 }catch(e){}
-buildAdminSlots();renderCal();renderPubAnn();updSum();
+buildAdminSlots();renderCal();renderPubAnn();updSum();updAbkPrice();
 loadFromSheets();
 (function(){
   var tc=document.getElementById('tabs-container');
