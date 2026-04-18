@@ -641,9 +641,12 @@ function sendEmail(templateId, params){
       reject(new Error('EmailJS SDK non caricato'));
       return;
     }
-    emailjs.send(EJS_SERVICE_ID, templateId, params, EJS_PUBLIC_KEY)
+    emailjs.send(EJS_SERVICE_ID, templateId, params)
       .then(function(r){resolve(r);})
-      .catch(function(e){reject(e);});
+      .catch(function(e){
+        console.error('EmailJS error:', e.status, e.text, JSON.stringify(params));
+        reject(e);
+      });
   });
 }
 
