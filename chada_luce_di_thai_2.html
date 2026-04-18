@@ -678,7 +678,7 @@ function doRegister(){
     saveUsers(users);
     sendEmail(EJS_TEMPLATE_REG, {
       to_name:  name,
-      to_email: email,
+      user_email: email,
       code:     code,
       app_name: 'Chada Luce di Thai'
     }).catch(function(e){ console.warn('Email conferma:', e); });
@@ -735,7 +735,7 @@ function doRequestReset(){
   if(ejsReady() && EJS_TEMPLATE_RST){
     sendEmail(EJS_TEMPLATE_RST, {
       to_name:  targetName,
-      to_email: targetEmail,
+      user_email: targetEmail,
       code:     code,
       app_name: 'Chada Luce di Thai',
       expires:  '15 minuti'
