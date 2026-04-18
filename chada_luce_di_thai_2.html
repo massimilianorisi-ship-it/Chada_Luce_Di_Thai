@@ -634,14 +634,16 @@ function ejsReady(){
 function sendEmail(templateId, params){
   return new Promise(function(resolve, reject){
     if(!ejsReady()){
-      console.warn('EmailJS non configurato — email non inviata');
-      resolve({status:200, text:'skipped'});
+      resolve({status:0, text:'skipped'});
       return;
     }
-    emailjs.init({publicKey: EJS_PUBLIC_KEY});
-    emailjs.send(EJS_SERVICE_ID, templateId, params)
-      .then(function(r){ resolve(r); })
-      .catch(function(e){ reject(e); });
+    if(typeof emailjs==='undefined'){
+      reject(new Error('EmailJS SDK non caricato'));
+      return;
+    }
+    emailjs.send(EJS_SERVICE_ID, templateId, params, EJS_PUBLIC_KEY)
+      .then(function(r){resolve(r);})
+      .catch(function(e){reject(e);});
   });
 }
 
@@ -678,7 +680,7 @@ function doRegister(){
     saveUsers(users);
     sendEmail(EJS_TEMPLATE_REG, {
       to_name:  name,
-      user_email: email,
+      to_email: email,
       code:     code,
       app_name: 'Chada Luce di Thai'
     }).catch(function(e){ console.warn('Email conferma:', e); });
@@ -735,7 +737,7 @@ function doRequestReset(){
   if(ejsReady() && EJS_TEMPLATE_RST){
     sendEmail(EJS_TEMPLATE_RST, {
       to_name:  targetName,
-      user_email: targetEmail,
+      to_email: targetEmail,
       code:     code,
       app_name: 'Chada Luce di Thai',
       expires:  '15 minuti'
@@ -927,7 +929,7 @@ function sheetsCall(params,cb){
   var done=false;
   function finish(d){if(done)return;done=true;cb(d);}
   if(location.protocol==='https:'){
-    fetch(url)
+    fetch(url, {redirect:'follow'})
       .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
       .then(function(d){finish(d);})
       .catch(function(){_jsonp(url,finish);});
@@ -1321,6 +1323,9 @@ try{
   if(_cb&&_cb!=='[]'){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
   if(_ca&&_ca!=='[]'){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
 }catch(e){}
+if(typeof emailjs!=='undefined'&&EJS_PUBLIC_KEY){
+  try{emailjs.init({publicKey:EJS_PUBLIC_KEY});}catch(e){}
+}
 buildAdminSlots();renderCal();renderPubAnn();updSum();restoreUserSession();updAbkPrice();
 loadFromSheets();
 (function(){
@@ -1336,21 +1341,6 @@ loadFromSheets();
   tc.addEventListener('click',doTab);
   tc.addEventListener('touchend',function(e){doTab(e);e.preventDefault();},{passive:false});
 })();
-</script>
-s-container');
-  if(!tc)return;
-  function doTab(e){
-    var el=e.target;
-    while(el&&el!==tc){
-      if(el.dataset&&el.dataset.name){showTab(el.dataset.name);return;}
-      el=el.parentNode;
-    }
-  }
-  tc.addEventListener('click',doTab);
-  tc.addEventListener('touchend',function(e){doTab(e);e.preventDefault();},{passive:false});
-})();
-
-
 </script>
 
 <div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;background:rgba(30,14,0,.97);border-top:.5px solid rgba(201,162,80,.3);padding:14px 16px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
