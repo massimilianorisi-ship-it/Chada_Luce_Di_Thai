@@ -505,7 +505,8 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     </p>
     <div class="fg"><label>Email o username (admin)</label>
       <input id="rstUser" type="text" placeholder="email o admin" autocomplete="username"></div>
-
+    <div class="fg" style="margin-bottom:15px"><label>Password attuale</label>
+      <input id="rstOldPwd" type="password" placeholder="password attuale" autocomplete="current-password"></div>
     <button class="btn-o" onclick="doRequestReset()">Invia link di ripristino</button>
     <div style="margin-top:1.2rem;border-top:.5px solid rgba(201,162,80,.1);padding-top:1rem">
       <p style="font-size:10px;color:rgba(245,237,216,.35);text-align:center">
@@ -710,16 +711,13 @@ function sendEmail(templateId, params){
       return;
     }
     if(typeof emailjs==='undefined'){
-      reject(new Error('EmailJS SDK non caricato. Controlla la connessione internet.'));
+      reject(new Error('EmailJS SDK non caricato'));
       return;
     }
-    try{
-      emailjs.init({publicKey: EJS_PUBLIC_KEY});
-    }catch(e){}
     emailjs.send(EJS_SERVICE_ID, templateId, params)
       .then(function(r){resolve(r);})
       .catch(function(e){
-        console.error('EmailJS error:', JSON.stringify(e));
+        console.error('EmailJS error:', e.status, e.text, JSON.stringify(params));
         reject(e);
       });
   });
@@ -786,41 +784,51 @@ function doRegister(){
 
 // ── RICHIESTA RESET (verifica vecchia password, invia codice) ─
 function doRequestReset(){
-  var user = document.getElementById('rstUser').value.trim().toLowerCase();
-  var err  = document.getElementById('rstErr');
-  var ok   = document.getElementById('rstOk');
+  var user    = document.getElementById('rstUser').value.trim().toLowerCase();
+  //var oldPwd  = document.getElementById('rstOldPwd').value;
+  var err     = document.getElementById('rstErr');
+  var ok      = document.getElementById('rstOk');
   err.classList.remove('show'); err.textContent='';
   ok.className='noti'; ok.textContent='';
 
-  if(!user){err.textContent='Inserisci la tua email o username.';err.classList.add('show');return;}
+  //if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
-  // Find user and send reset code (no password verification needed)
-  if(sheetsOn()){
-    sheetsCall({action:'getUser', email:user}, function(r){
-      if(r&&r.user){
-        _sendResetCode(user, r.user, ok, err);
-      } else if(user==='admin'){
-        _sendResetCode('admin', {name:'Amministratore'}, ok, err);
-      } else {
-        // Try local fallback
-        try{
-          var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-          if(users[user]){_sendResetCode(user,users[user],ok,err);return;}
-        }catch(e){}
-        err.textContent='Email non trovata. Verifica e riprova.';err.classList.add('show');
-      }
+  var isAdm  = (user==='admin');
+  //var validOld = isAdm
+  //? (oldPwd === getAdminPwd())
+  // : (function(){ var u=getUsers()[user]; return u&&u.pwd===oldPwd; })();
+
+  //if(!validOld){
+  //  err.textContent='Password attuale non corretta.';err.classList.add('show');return;
+  //}
+
+  // Generate reset code
+  var code    = makeCode();
+  var expires = Date.now() + 15*60*1000; // 15 minuti
+  pendingResets[user] = {code:code, expires:expires};
+
+  var targetEmail = isAdm ? 'chadada@hotmail.it' : user;
+  var targetName  = isAdm ? 'Amministratore' : (getUsers()[user]||{}).name||user;
+
+  if(ejsReady() && EJS_TEMPLATE_RST){
+    sendEmail(EJS_TEMPLATE_RST, {
+      to_name:  targetName,
+      to_email: targetEmail,
+      code:     code,
+      app_name: 'Chada Luce di Thai',
+      expires:  '15 minuti'
+    }).then(function(){
+      ok.textContent='✓ Codice inviato a '+targetEmail+'. Valido 15 minuti.';
+      ok.className='noti show ok';
+    }).catch(function(){
+      // Fallback: show code directly (no email configured)
+      ok.textContent='EmailJS non configurato. Codice di test: '+code;
+      ok.className='noti show ok';
     });
   } else {
-    // Local fallback
-    if(user==='admin'){
-      _sendResetCode('admin',{name:'Amministratore'},ok,err);
-    } else {
-      try{
-        var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-        if(users[user]){_sendResetCode(user,users[user],ok,err);}
-        else{err.textContent='Email non trovata.';err.classList.add('show');}
-      }catch(e){err.textContent='Errore interno.';err.classList.add('show');}
-    }
+    // No EmailJS: show code on screen for testing
+    ok.textContent='(Test — EmailJS non configurato) Codice: '+code;
+    ok.className='noti show ok';
   }
 }
 
@@ -1596,6 +1604,9 @@ try{
   if(_cb&&_cb!=='[]'){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
   if(_ca&&_ca!=='[]'){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
 }catch(e){}
+if(typeof emailjs!=='undefined'&&EJS_PUBLIC_KEY){
+  try{emailjs.init({publicKey:EJS_PUBLIC_KEY});}catch(e){}
+}
 buildAdminSlots();renderCal();renderPubAnn();updSum();checkCookieBanner();restoreUserSession();updAbkPrice();
 loadFromSheets();
 (function(){
