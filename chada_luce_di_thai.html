@@ -785,22 +785,22 @@ function doRegister(){
 // ── RICHIESTA RESET (verifica vecchia password, invia codice) ─
 function doRequestReset(){
   var user    = document.getElementById('rstUser').value.trim().toLowerCase();
-  //var oldPwd  = document.getElementById('rstOldPwd').value;
+  var oldPwd  = document.getElementById('rstOldPwd').value;
   var err     = document.getElementById('rstErr');
   var ok      = document.getElementById('rstOk');
   err.classList.remove('show'); err.textContent='';
   ok.className='noti'; ok.textContent='';
 
-  //if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
+  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
   var isAdm  = (user==='admin');
-  //var validOld = isAdm
-  //? (oldPwd === getAdminPwd())
-  // : (function(){ var u=getUsers()[user]; return u&&u.pwd===oldPwd; })();
+  var validOld = isAdm
+    ? (oldPwd === getAdminPwd())
+    : (function(){ var u=getUsers()[user]; return u&&u.pwd===oldPwd; })();
 
-  //if(!validOld){
-  //  err.textContent='Password attuale non corretta.';err.classList.add('show');return;
-  //}
+  if(!validOld){
+    err.textContent='Password attuale non corretta.';err.classList.add('show');return;
+  }
 
   // Generate reset code
   var code    = makeCode();
@@ -1040,27 +1040,27 @@ function _afterRegister(userData, err){
 // ── RESET PASSWORD ─────────────────────────────────────────────
 function doRequestReset(){
   var user   = document.getElementById('rstUser').value.trim().toLowerCase();
-  //var oldPwd = document.getElementById('rstOldPwd').value;
+  var oldPwd = document.getElementById('rstOldPwd').value;
   var err    = document.getElementById('rstErr');
   var ok     = document.getElementById('rstOk');
   err.classList.remove('show');err.textContent='';
   ok.className='noti';ok.textContent='';
-  //if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
+  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
-  //hashPwd(oldPwd).then(function(hash){
-  //if(sheetsOn()){
-  // sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
-  //  if(r&&r.ok){
-  //    _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
-  // } else {
-  //   _localRequestReset(user, hash, ok, err);
-  // }
-  //  });
-  // } else {
-  //   _localRequestReset(user, hash, ok, err);
-  //  }
-  //});
-  //}
+  hashPwd(oldPwd).then(function(hash){
+    if(sheetsOn()){
+      sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
+        if(r&&r.ok){
+          _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
+        } else {
+          _localRequestReset(user, hash, ok, err);
+        }
+      });
+    } else {
+      _localRequestReset(user, hash, ok, err);
+    }
+  });
+}
 
 function _localRequestReset(user, hash, ok, err){
   hashPwd(getAdminPwd()).then(function(adminHash){
@@ -1306,7 +1306,7 @@ var bks=[
   {id:7,date:'2026-04-14',time:'16:30',name:'Francesca Riva',svc:'Energetico Thai',price:70,dur:60,status:'pending',notes:''}
 ];
 var anns=[];
-var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===21&&m>30)&&h<=21){s.push((h<10?'0':'')+h+':'+(m===0?'00':'30'));m+=30;if(m>=60){m=0;h++;}}return s;})();
+var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===20&&m>30)&&h<=20){s.push((h<10?'0':'')+h+':'+(m===0?'00':'30'));m+=30;if(m>=60){m=0;h++;}}return s;})();
 
 function fd(d){var p=d.split('-');return parseInt(p[2])+' '+MO[parseInt(p[1])-1]+' '+p[0];}
 function tm(t){var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
@@ -1318,7 +1318,7 @@ function validSlots(date,dur){
   var bb=bks.filter(function(b){return b.date===date;});
   return SLOTS.filter(function(s){
     var sm=tm(s);
-    if(sm+dur>tm('21:30'))return false;
+    if(sm+dur>tm('20:30'))return false;
     for(var i=0;i<bb.length;i++){
       var bs=tm(bb[i].time),be=bs+(bb[i].dur||60)+BUF;
       if(!(sm+dur+BUF<=bs||sm>=be))return false;
