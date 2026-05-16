@@ -1040,27 +1040,27 @@ function _afterRegister(userData, err){
 // ── RESET PASSWORD ─────────────────────────────────────────────
 function doRequestReset(){
   var user   = document.getElementById('rstUser').value.trim().toLowerCase();
-  var oldPwd = document.getElementById('rstOldPwd').value;
+  //var oldPwd = document.getElementById('rstOldPwd').value;
   var err    = document.getElementById('rstErr');
   var ok     = document.getElementById('rstOk');
   err.classList.remove('show');err.textContent='';
   ok.className='noti';ok.textContent='';
-  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
+  //if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
-  hashPwd(oldPwd).then(function(hash){
-    if(sheetsOn()){
-      sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
-        if(r&&r.ok){
-          _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
-        } else {
-          _localRequestReset(user, hash, ok, err);
-        }
-      });
-    } else {
-      _localRequestReset(user, hash, ok, err);
-    }
-  });
-}
+  //hashPwd(oldPwd).then(function(hash){
+  //if(sheetsOn()){
+  // sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
+  //  if(r&&r.ok){
+  //    _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
+  // } else {
+  //   _localRequestReset(user, hash, ok, err);
+  // }
+  //  });
+  // } else {
+  //   _localRequestReset(user, hash, ok, err);
+  //  }
+  //});
+  //}
 
 function _localRequestReset(user, hash, ok, err){
   hashPwd(getAdminPwd()).then(function(adminHash){
