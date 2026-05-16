@@ -710,13 +710,16 @@ function sendEmail(templateId, params){
       return;
     }
     if(typeof emailjs==='undefined'){
-      reject(new Error('EmailJS SDK non caricato'));
+      reject(new Error('EmailJS SDK non caricato. Controlla la connessione internet.'));
       return;
     }
+    try{
+      emailjs.init({publicKey: EJS_PUBLIC_KEY});
+    }catch(e){}
     emailjs.send(EJS_SERVICE_ID, templateId, params)
       .then(function(r){resolve(r);})
       .catch(function(e){
-        console.error('EmailJS error:', e.status, e.text, JSON.stringify(params));
+        console.error('EmailJS error:', JSON.stringify(e));
         reject(e);
       });
   });
@@ -1593,9 +1596,6 @@ try{
   if(_cb&&_cb!=='[]'){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
   if(_ca&&_ca!=='[]'){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
 }catch(e){}
-if(typeof emailjs!=='undefined'&&EJS_PUBLIC_KEY){
-  try{emailjs.init({publicKey:EJS_PUBLIC_KEY});}catch(e){}
-}
 buildAdminSlots();renderCal();renderPubAnn();updSum();checkCookieBanner();restoreUserSession();updAbkPrice();
 loadFromSheets();
 (function(){
