@@ -500,13 +500,12 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     <div class="le" id="rstErr"></div>
     <div class="noti" id="rstOk" style="margin-bottom:10px"></div>
     <p style="font-size:12px;color:rgba(245,237,216,.5);margin-bottom:14px;line-height:1.6">
-      Inserisci la tua email (o <em>admin</em>) e la password attuale.<br>
-      Riceverai un link per impostare la nuova password.
+      Inserisci la tua email (o <em>admin</em>).<br>
+      Riceverai via email un codice per reimpostare la password.
     </p>
-    <div class="fg"><label>Email o username (admin)</label>
+    <div class="fg" style="margin-bottom:15px"><label>Email o username (admin)</label>
       <input id="rstUser" type="text" placeholder="email o admin" autocomplete="username"></div>
-
-    <button class="btn-o" onclick="doRequestReset()">Invia link di ripristino</button>
+    <button class="btn-o" onclick="doRequestReset()">Invia codice di ripristino</button>
     <div style="margin-top:1.2rem;border-top:.5px solid rgba(201,162,80,.1);padding-top:1rem">
       <p style="font-size:10px;color:rgba(245,237,216,.35);text-align:center">
         Hai già il codice di ripristino?
@@ -710,12 +709,10 @@ function sendEmail(templateId, params){
       return;
     }
     if(typeof emailjs==='undefined'){
-      reject(new Error('EmailJS SDK non caricato. Controlla la connessione internet.'));
+      reject(new Error('EmailJS SDK non caricato'));
       return;
     }
-    try{
-      emailjs.init({publicKey: EJS_PUBLIC_KEY});
-    }catch(e){}
+    try{emailjs.init({publicKey:EJS_PUBLIC_KEY});}catch(e){}
     emailjs.send(EJS_SERVICE_ID, templateId, params)
       .then(function(r){resolve(r);})
       .catch(function(e){
@@ -792,35 +789,49 @@ function doRequestReset(){
   err.classList.remove('show'); err.textContent='';
   ok.className='noti'; ok.textContent='';
 
-  if(!user){err.textContent='Inserisci la tua email o username.';err.classList.add('show');return;}
+  if(!user){
+    err.textContent='Inserisci la tua email o username.';
+    err.classList.add('show');
+    return;
+  }
 
-  // Find user and send reset code (no password verification needed)
-  if(sheetsOn()){
-    sheetsCall({action:'getUser', email:user}, function(r){
-      if(r&&r.user){
-        _sendResetCode(user, r.user, ok, err);
-      } else if(user==='admin'){
-        _sendResetCode('admin', {name:'Amministratore'}, ok, err);
-      } else {
-        // Try local fallback
-        try{
-          var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-          if(users[user]){_sendResetCode(user,users[user],ok,err);return;}
-        }catch(e){}
-        err.textContent='Email non trovata. Verifica e riprova.';err.classList.add('show');
-      }
+  var isAdm = (user==='admin');
+  var targetEmail = isAdm ? 'chadada@hotmail.it' : user;
+  var targetName  = isAdm ? 'Amministratore'
+    : (function(){ var u=getUsers()[user]; return u?u.name:user; })();
+
+  // Verifica che l'utente esista (solo per non-admin)
+  if(!isAdm){
+    var users = getUsers();
+    if(!users[user]){
+      err.textContent='Email non trovata. Verifica e riprova.';
+      err.classList.add('show');
+      return;
+    }
+  }
+
+  // Genera codice reset
+  var code    = makeCode();
+  var expires = Date.now() + 15*60*1000;
+  pendingResets[user] = {code:code, expires:expires};
+
+  if(ejsReady() && EJS_TEMPLATE_RST){
+    sendEmail(EJS_TEMPLATE_RST, {
+      to_name:  targetName,
+      to_email: targetEmail,
+      code:     code,
+      app_name: 'Chada Luce di Thai',
+      expires:  '15 minuti'
+    }).then(function(){
+      ok.textContent='✓ Codice inviato a '+targetEmail+'. Valido 15 minuti.';
+      ok.className='noti show ok';
+    }).catch(function(){
+      ok.textContent='Errore invio email. Codice di test: '+code;
+      ok.className='noti show ok';
     });
   } else {
-    // Local fallback
-    if(user==='admin'){
-      _sendResetCode('admin',{name:'Amministratore'},ok,err);
-    } else {
-      try{
-        var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-        if(users[user]){_sendResetCode(user,users[user],ok,err);}
-        else{err.textContent='Email non trovata.';err.classList.add('show');}
-      }catch(e){err.textContent='Errore interno.';err.classList.add('show');}
-    }
+    ok.textContent='(Test — EmailJS non configurato) Codice: '+code;
+    ok.className='noti show ok';
   }
 }
 
@@ -1169,7 +1180,7 @@ function restoreUserSession(){
 
 
 
-var SHEETS_URL='https://script.google.com/macros/s/AKfycbzrE5WatkwTQrr7XlmJcPnNOfQa0p_oeIj1wAkLzSwNRh1tyQ-CDXDdy0ADHNqQ1BCJgQ/exec';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbySAdm-xYWM3CU20bM3LmetU03JsELiZDCJt6kwYIXDJ2GC_MxhtdUtLRaELueCCKs-RA/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
@@ -1596,6 +1607,9 @@ try{
   if(_cb&&_cb!=='[]'){bks=JSON.parse(_cb);nid=bks.reduce(function(m,b){return Math.max(m,parseInt(b.id)||0);},0)+1;}
   if(_ca&&_ca!=='[]'){anns=JSON.parse(_ca);nanid=anns.reduce(function(m,a){return Math.max(m,parseInt(a.id)||0);},0)+1;}
 }catch(e){}
+if(typeof emailjs!=='undefined'&&EJS_PUBLIC_KEY){
+  try{emailjs.init({publicKey:EJS_PUBLIC_KEY});}catch(e){}
+}
 buildAdminSlots();renderCal();renderPubAnn();updSum();checkCookieBanner();restoreUserSession();updAbkPrice();
 loadFromSheets();
 (function(){
