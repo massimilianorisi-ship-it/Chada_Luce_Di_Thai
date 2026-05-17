@@ -500,16 +500,13 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     <div class="le" id="rstErr"></div>
     <div class="noti" id="rstOk" style="margin-bottom:10px"></div>
     <p style="font-size:12px;color:rgba(245,237,216,.5);margin-bottom:14px;line-height:1.6">
-      Inserisci la tua email (o <em>admin</em>).<br>
-      Riceverai via email un codice per reimpostare la password.
+      Inserisci la tua email (o <em>admin</em>) e riceverai un codice per impostare una nuova password.
     </p>
     <div class="fg" style="margin-bottom:15px"><label>Email o username (admin)</label>
       <input id="rstUser" type="text" placeholder="email o admin" autocomplete="username"></div>
     <button class="btn-o" onclick="doRequestReset()">Invia codice di ripristino</button>
     <div style="margin-top:1.2rem;border-top:.5px solid rgba(201,162,80,.1);padding-top:1rem">
-      <p style="font-size:10px;color:rgba(245,237,216,.35);text-align:center">
-        Hai già il codice di ripristino?
-      </p>
+      <p style="font-size:10px;color:rgba(245,237,216,.35);text-align:center">Hai ricevuto il codice? Inseriscilo qui sotto.</p>
       <div class="fg" style="margin-top:8px"><label>Codice ricevuto per email</label>
         <input id="rstCode" type="text" placeholder="000000" maxlength="6"
           style="text-align:center;font-size:1.3rem;letter-spacing:.3em"></div>
@@ -520,66 +517,6 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
       <button class="btn-o" onclick="doResetPwd()">Imposta nuova password</button>
     </div>
   </div>
-
-</div></div>
-</div>
-
-<!-- PRIVACY POLICY -->
-<div id="pnl-privacy" class="pnl">
-<div class="stitle">Privacy Policy</div>
-<div style="background:rgba(43,22,0,.45);border:.5px solid rgba(201,162,80,.15);border-radius:16px;padding:1.6rem;margin-bottom:1.4rem;font-family:'Crimson Text',serif;font-size:14px;color:rgba(245,237,216,.72);line-height:1.82">
-
-  <p style="font-size:11px;color:rgba(201,162,80,.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem">Informativa ai sensi dell&apos;art. 13 GDPR (UE) 2016/679 &mdash; Aggiornata al 2025</p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">1. Titolare del trattamento</h3>
-  <p><strong style="color:var(--c)">Chada Luce di Thai</strong><br>
-  Via Giorgio La Pira n.1 &mdash; 24066 Pedrengo (BG)<br>
-  P.IVA: 04705670166<br>
-  Email: <a href="mailto:chadada@hotmail.it" style="color:var(--o2)">chadada@hotmail.it</a><br>
-  Tel: <a href="tel:+393784061647" style="color:var(--o2)">+39 378 406 1647</a></p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">2. Dati raccolti e finalit&agrave;</h3>
-  <p><strong style="color:var(--c)">Dati di navigazione</strong> — indirizzi IP, tipo di browser, pagine visitate: raccolti automaticamente per garantire il funzionamento tecnico del sito. Base giuridica: interesse legittimo (art. 6.1.f GDPR). Conservazione: sessione.</p>
-  <p><strong style="color:var(--c)">Dati di prenotazione</strong> — nome, telefono, trattamento scelto, data e orario, problematiche fisiche (facoltative): raccolti per gestire le prenotazioni e contattare il cliente. Base giuridica: esecuzione di un contratto (art. 6.1.b GDPR). Conservazione: 2 anni dalla data di prenotazione.</p>
-  <p><strong style="color:var(--c)">Dati di registrazione account</strong> — nome, email, telefono, password (in forma criptata): raccolti per permettere l&apos;accesso all&apos;area riservata. Base giuridica: consenso dell&apos;interessato (art. 6.1.a GDPR). Conservazione: fino alla cancellazione dell&apos;account.</p>
-  <p><strong style="color:var(--c)">Cookie tecnici</strong> — localStorage del browser: usato per salvare le preferenze di sessione e i dati di prenotazione in cache. Non &egrave; cookie di profilazione. Base giuridica: interesse legittimo.</p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">3. Servizi di terze parti</h3>
-  <p><strong style="color:var(--c)">Google Fonts</strong> — caricamento font tipografici. Gestore: Google LLC (USA). L&apos;IP dell&apos;utente viene trasmesso ai server Google. Informativa: <a href="https://policies.google.com/privacy" target="_blank" style="color:var(--o2)">policies.google.com/privacy</a></p>
-  <p><strong style="color:var(--c)">EmailJS</strong> — invio email transazionali (conferma account, reset password). Gestore: EmailJS Ltd. Nessun dato viene usato per profilazione. Informativa: <a href="https://www.emailjs.com/legal/privacy-policy" target="_blank" style="color:var(--o2)">emailjs.com/legal/privacy-policy</a></p>
-  <p><strong style="color:var(--c)">Google Apps Script / Google Sheets</strong> — archiviazione appuntamenti. Gestore: Google LLC. I dati inseriti nel modulo di prenotazione vengono trasmessi a un foglio Google Sheets accessibile solo al titolare. Informativa: <a href="https://policies.google.com/privacy" target="_blank" style="color:var(--o2)">policies.google.com/privacy</a></p>
-  <p><strong style="color:var(--c)">WhatsApp</strong> — invio richiesta di prenotazione. Cliccando il pulsante WhatsApp l&apos;utente viene reindirizzato alla piattaforma WhatsApp di Meta. Il contenuto del messaggio pre-compilato viene condiviso con WhatsApp/Meta. Informativa: <a href="https://www.whatsapp.com/legal/privacy-policy" target="_blank" style="color:var(--o2)">whatsapp.com/legal/privacy-policy</a></p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">4. Comunicazione e diffusione dei dati</h3>
-  <p>I dati non vengono venduti n&eacute; ceduti a terzi per finalit&agrave; commerciali. Possono essere comunicati esclusivamente a:<br>
-  &bull; Fornitori tecnici del servizio (Google, EmailJS) nei limiti indicati al punto 3;<br>
-  &bull; Autorit&agrave; competenti in caso di obbligo di legge.</p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">5. Trasferimento extra-UE</h3>
-  <p>I servizi Google ed EmailJS possono trattare dati al di fuori dell&apos;UE. Tali trasferimenti avvengono sulla base di clausole contrattuali standard approvate dalla Commissione Europea (art. 46 GDPR).</p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">6. Diritti dell&apos;interessato</h3>
-  <p>Ai sensi degli artt. 15&ndash;22 GDPR, l&apos;utente ha diritto di:<br>
-  &bull; <strong style="color:var(--c)">Accesso</strong> — ottenere conferma del trattamento e copia dei dati;<br>
-  &bull; <strong style="color:var(--c)">Rettifica</strong> — correggere dati inesatti;<br>
-  &bull; <strong style="color:var(--c)">Cancellazione</strong> (&ldquo;diritto all&apos;oblio&rdquo;) — richiedere la rimozione dei propri dati;<br>
-  &bull; <strong style="color:var(--c)">Limitazione</strong> — limitare il trattamento in determinate circostanze;<br>
-  &bull; <strong style="color:var(--c)">Portabilit&agrave;</strong> — ricevere i dati in formato strutturato;<br>
-  &bull; <strong style="color:var(--c)">Opposizione</strong> — opporsi al trattamento per interesse legittimo;<br>
-  &bull; <strong style="color:var(--c)">Revoca del consenso</strong> — in qualsiasi momento, senza pregiudicare i trattamenti precedenti.</p>
-  <p>Per esercitare i diritti scrivere a: <a href="mailto:chadada@hotmail.it" style="color:var(--o2)">chadada@hotmail.it</a></p>
-  <p>In caso di risposta insoddisfacente &egrave; possibile proporre reclamo al <strong style="color:var(--c)">Garante per la protezione dei dati personali</strong>: <a href="https://www.garanteprivacy.it" target="_blank" style="color:var(--o2)">garanteprivacy.it</a></p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">7. Cookie e localStorage</h3>
-  <p>Questo sito utilizza esclusivamente <strong style="color:var(--c)">cookie tecnici e localStorage</strong> necessari al funzionamento (preferenze di sessione, cache appuntamenti). Non vengono utilizzati cookie di profilazione, di marketing o di tracciamento comportamentale di terze parti che richiedano consenso preventivo.</p>
-  <p>L&apos;unico dato trasmesso automaticamente a terzi &egrave; l&apos;indirizzo IP verso Google Fonts al caricamento del sito, per la fornitura dei caratteri tipografici.</p>
-
-  <h3 style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--o);margin:1.2rem 0 .5rem">8. Modifiche alla presente informativa</h3>
-  <p>Il titolare si riserva il diritto di modificare questa informativa in qualsiasi momento. Le modifiche saranno pubblicate su questa pagina con aggiornamento della data.</p>
-
-</div>
-</div>
-
 
 <!-- ADMIN -->
 <div id="pnl-admin" class="pnl">
@@ -782,97 +719,10 @@ function doRegister(){
 }
 
 // ── RICHIESTA RESET (verifica vecchia password, invia codice) ─
-function doRequestReset(){
-  var user = document.getElementById('rstUser').value.trim().toLowerCase();
-  var err  = document.getElementById('rstErr');
-  var ok   = document.getElementById('rstOk');
-  err.classList.remove('show'); err.textContent='';
-  ok.className='noti'; ok.textContent='';
 
-  if(!user){
-    err.textContent='Inserisci la tua email o username.';
-    err.classList.add('show');
-    return;
-  }
-
-  var isAdm = (user==='admin');
-  var targetEmail = isAdm ? 'chadada@hotmail.it' : user;
-  var targetName  = isAdm ? 'Amministratore'
-    : (function(){ var u=getUsers()[user]; return u?u.name:user; })();
-
-  // Verifica che l'utente esista (solo per non-admin)
-  if(!isAdm){
-    var users = getUsers();
-    if(!users[user]){
-      err.textContent='Email non trovata. Verifica e riprova.';
-      err.classList.add('show');
-      return;
-    }
-  }
-
-  // Genera codice reset
-  var code    = makeCode();
-  var expires = Date.now() + 15*60*1000;
-  pendingResets[user] = {code:code, expires:expires};
-
-  if(ejsReady() && EJS_TEMPLATE_RST){
-    sendEmail(EJS_TEMPLATE_RST, {
-      to_name:  targetName,
-      to_email: targetEmail,
-      code:     code,
-      app_name: 'Chada Luce di Thai',
-      expires:  '15 minuti'
-    }).then(function(){
-      ok.textContent='✓ Codice inviato a '+targetEmail+'. Valido 15 minuti.';
-      ok.className='noti show ok';
-    }).catch(function(){
-      ok.textContent='Errore invio email. Codice di test: '+code;
-      ok.className='noti show ok';
-    });
-  } else {
-    ok.textContent='(Test — EmailJS non configurato) Codice: '+code;
-    ok.className='noti show ok';
-  }
-}
 
 // ── IMPOSTA NUOVA PASSWORD (con codice ricevuto) ──────────────
-function doResetPwd(){
-  var user = document.getElementById('rstUser').value.trim().toLowerCase();
-  var code = document.getElementById('rstCode').value.trim();
-  var pwd  = document.getElementById('rstPwd').value;
-  var pwd2 = document.getElementById('rstPwd2').value;
-  var err  = document.getElementById('rstErr');
-  var ok   = document.getElementById('rstOk');
-  err.classList.remove('show'); err.textContent='';
-  ok.className='noti'; ok.textContent='';
 
-  if(!user||!code||!pwd){err.textContent='Compila tutti i campi.';err.classList.add('show');return;}
-  if(pwd.length<6){err.textContent='Password min. 6 caratteri.';err.classList.add('show');return;}
-  if(pwd!==pwd2){err.textContent='Le password non coincidono.';err.classList.add('show');return;}
-
-  var reset = pendingResets[user];
-  if(!reset){err.textContent='Nessun ripristino in corso. Clicca "Invia link di ripristino".';err.classList.add('show');return;}
-  if(Date.now() > reset.expires){err.textContent='Codice scaduto. Richiedine uno nuovo.';err.classList.add('show');delete pendingResets[user];return;}
-  if(code !== reset.code){err.textContent='Codice non corretto.';err.classList.add('show');return;}
-
-  // Apply new password
-  if(user==='admin'){
-    localStorage.setItem('chada_admin_pwd', pwd);
-  } else {
-    var users=getUsers();
-    if(users[user]){ users[user].pwd=pwd; saveUsers(users); }
-    else { err.textContent='Utente non trovato.';err.classList.add('show');return; }
-  }
-
-  delete pendingResets[user];
-  ok.textContent='✓ Password aggiornata! Accedi con le nuove credenziali.';
-  ok.className='noti show ok';
-  // Clear fields
-  ['rstUser','rstOldPwd','rstCode','rstPwd','rstPwd2'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.value='';
-  });
-  setTimeout(function(){showLTab('login');},2500);
-}
 
 // ── USER SYSTEM ───────────────────────────────────────────────
 // Users stored in localStorage: {email: {name,email,phone,pwd,secAnswer}}
@@ -1041,42 +891,9 @@ function _afterRegister(userData, err){
 }
 
 // ── RESET PASSWORD ─────────────────────────────────────────────
-function doRequestReset(){
-  var user   = document.getElementById('rstUser').value.trim().toLowerCase();
-  var oldPwd = document.getElementById('rstOldPwd').value;
-  var err    = document.getElementById('rstErr');
-  var ok     = document.getElementById('rstOk');
-  err.classList.remove('show');err.textContent='';
-  ok.className='noti';ok.textContent='';
-  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
-  hashPwd(oldPwd).then(function(hash){
-    if(sheetsOn()){
-      sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
-        if(r&&r.ok){
-          _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
-        } else {
-          _localRequestReset(user, hash, ok, err);
-        }
-      });
-    } else {
-      _localRequestReset(user, hash, ok, err);
-    }
-  });
-}
 
-function _localRequestReset(user, hash, ok, err){
-  hashPwd(getAdminPwd()).then(function(adminHash){
-    if(user==='admin'&&hash===adminHash){
-      _sendResetCode(user,{name:'Amministratore'},ok,err); return;
-    }
-    try{
-      var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-      if(users[user]&&users[user].hash===hash){_sendResetCode(user,users[user],ok,err);return;}
-    }catch(e){}
-    err.textContent='Password attuale non corretta.';err.classList.add('show');
-  });
-}
+
 
 function _sendResetCode(user, userData, ok, err){
   var code=makeCode();
@@ -1141,7 +958,7 @@ function _localResetPwd(user, hash, ok){
 
 function _afterResetPwd(user, hash, ok){
   ok.textContent='\u2713 Password aggiornata! Accedi con le nuove credenziali.';ok.className='noti show ok';
-  ['rstUser','rstOldPwd','rstCode','rstPwd','rstPwd2'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['rstUser','rstCode','rstPwd','rstPwd2'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   setTimeout(function(){showLTab('login');},2500);
 }
 
@@ -1180,7 +997,7 @@ function restoreUserSession(){
 
 
 
-var SHEETS_URL='https://script.google.com/macros/s/AKfycbySAdm-xYWM3CU20bM3LmetU03JsELiZDCJt6kwYIXDJ2GC_MxhtdUtLRaELueCCKs-RA/exec';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbzrE5WatkwTQrr7XlmJcPnNOfQa0p_oeIj1wAkLzSwNRh1tyQ-CDXDdy0ADHNqQ1BCJgQ/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
@@ -1348,6 +1165,55 @@ function showLTab(name){
   if(pnl)pnl.classList.add('active');
   ['lerr','rerr','rstErr'].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove('show');el.textContent='';}});
   var ok=document.getElementById('rstOk');if(ok){ok.className='noti';ok.textContent='';}
+}
+function doRequestReset(){
+  var user=document.getElementById('rstUser').value.trim().toLowerCase();
+  var err=document.getElementById('rstErr');
+  var ok=document.getElementById('rstOk');
+  err.classList.remove('show');err.textContent='';
+  ok.className='noti';ok.textContent='';
+  if(!user){err.textContent='Inserisci email o username.';err.classList.add('show');return;}
+  if(sheetsOn()){
+    sheetsCall({action:'checkUser',email:user},function(r){
+      if(r&&r.ok){_sendResetCode(user,r.user||{name:'Utente'},ok,err);}
+      else if(r&&r.error){err.textContent=r.error;err.classList.add('show');}
+      else{_localCheckAndReset(user,ok,err);}
+    });
+  } else {
+    _localCheckAndReset(user,ok,err);
+  }
+}
+function _localCheckAndReset(user,ok,err){
+  if(user==='admin'){_sendResetCode(user,{name:'Amministratore'},ok,err);return;}
+  try{
+    var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
+    if(users[user]){_sendResetCode(user,users[user],ok,err);}
+    else{err.textContent='Email non registrata.';err.classList.add('show');}
+  }catch(e){err.textContent='Email non registrata.';err.classList.add('show');}
+}
+function doResetPwd(){
+  var user=document.getElementById('rstUser').value.trim().toLowerCase();
+  var code=document.getElementById('rstCode').value.trim();
+  var pwd=document.getElementById('rstPwd').value;
+  var pwd2=document.getElementById('rstPwd2').value;
+  var err=document.getElementById('rstErr');
+  var ok=document.getElementById('rstOk');
+  err.classList.remove('show');err.textContent='';ok.className='noti';ok.textContent='';
+  if(!user||!code||!pwd){err.textContent='Compila tutti i campi.';err.classList.add('show');return;}
+  if(pwd.length<6){err.textContent='Password min. 6 caratteri.';err.classList.add('show');return;}
+  if(pwd!==pwd2){err.textContent='Le password non coincidono.';err.classList.add('show');return;}
+  var reset=pendingResets[user];
+  if(!reset){err.textContent='Prima richiedi il codice di ripristino.';err.classList.add('show');return;}
+  if(Date.now()>reset.expires){err.textContent='Codice scaduto. Richiedine uno nuovo.';err.classList.add('show');delete pendingResets[user];return;}
+  if(code!==reset.code){err.textContent='Codice non corretto.';err.classList.add('show');return;}
+  hashPwd(pwd).then(function(hash){
+    if(sheetsOn()){
+      sheetsCall({action:'updatePwd',email:user,hash:hash},function(){_afterResetPwd(user,hash,ok);});
+    } else {
+      _localResetPwd(user,hash,ok);
+    }
+  });
+  delete pendingResets[user];
 }
 function showTab(name){
   var pnls=['tratt','prenota','cal','chada','login','admin','mappa','privacy'];
