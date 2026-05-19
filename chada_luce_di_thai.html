@@ -206,6 +206,10 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
 .unm{font-size:12px;color:var(--c);font-weight:500}
 .uout{font-size:11px;padding:5px 12px;border:.5px solid var(--b2);border-radius:var(--r);background:transparent;color:var(--o);cursor:pointer;touch-action:manipulation}
 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
 @media(max-width:600px){
   .hlogo{font-size:1.9rem}.hsub{font-size:1rem}
   .tgrid{grid-template-columns:1fr}.f2{grid-template-columns:1fr}
@@ -500,20 +504,18 @@ body{background:#1E0E00;font-family:'Jost',sans-serif;color:var(--t)}
     <div class="le" id="rstErr"></div>
     <div class="noti" id="rstOk" style="margin-bottom:10px"></div>
     <p style="font-size:12px;color:rgba(245,237,216,.5);margin-bottom:14px;line-height:1.6">
-      Inserisci la tua email (o <em>admin</em>) e la password attuale.<br>
-      Riceverai un link per impostare la nuova password.
+      Inserisci la tua email (o <em>admin</em>) e riceverai un codice per impostare una nuova password.
     </p>
     <div class="fg"><label>Email o username (admin)</label>
       <input id="rstUser" type="text" placeholder="email o admin" autocomplete="username"></div>
-    <div class="fg" style="margin-bottom:15px"><label>Password attuale</label>
-      <input id="rstOldPwd" type="password" placeholder="password attuale" autocomplete="current-password"></div>
+    
     <button class="btn-o" onclick="doRequestReset()">Invia link di ripristino</button>
     <div style="margin-top:1.2rem;border-top:.5px solid rgba(201,162,80,.1);padding-top:1rem">
       <p style="font-size:10px;color:rgba(245,237,216,.35);text-align:center">
         Hai già il codice di ripristino?
       </p>
       <div class="fg" style="margin-top:8px"><label>Codice ricevuto per email</label>
-        <input id="rstCode" type="text" placeholder="000000" maxlength="6"
+        <input id="rstCode" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="000000" maxlength="6" min="0" max="999999" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /[0-9]/.test(event.key)"
           style="text-align:center;font-size:1.3rem;letter-spacing:.3em"></div>
       <div class="fg"><label>Nuova password</label>
         <input id="rstPwd" type="password" placeholder="nuova password" autocomplete="new-password"></div>
@@ -784,51 +786,20 @@ function doRegister(){
 
 // ── RICHIESTA RESET (verifica vecchia password, invia codice) ─
 function doRequestReset(){
-  var user    = document.getElementById('rstUser').value.trim().toLowerCase();
-  var oldPwd  = document.getElementById('rstOldPwd').value;
-  var err     = document.getElementById('rstErr');
-  var ok      = document.getElementById('rstOk');
-  err.classList.remove('show'); err.textContent='';
-  ok.className='noti'; ok.textContent='';
-
-  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
-
-  var isAdm  = (user==='admin');
-  var validOld = isAdm
-    ? (oldPwd === getAdminPwd())
-    : (function(){ var u=getUsers()[user]; return u&&u.pwd===oldPwd; })();
-
-  if(!validOld){
-    err.textContent='Password attuale non corretta.';err.classList.add('show');return;
-  }
-
-  // Generate reset code
-  var code    = makeCode();
-  var expires = Date.now() + 15*60*1000; // 15 minuti
-  pendingResets[user] = {code:code, expires:expires};
-
-  var targetEmail = isAdm ? 'chadada@hotmail.it' : user;
-  var targetName  = isAdm ? 'Amministratore' : (getUsers()[user]||{}).name||user;
-
-  if(ejsReady() && EJS_TEMPLATE_RST){
-    sendEmail(EJS_TEMPLATE_RST, {
-      to_name:  targetName,
-      to_email: targetEmail,
-      code:     code,
-      app_name: 'Chada Luce di Thai',
-      expires:  '15 minuti'
-    }).then(function(){
-      ok.textContent='✓ Codice inviato a '+targetEmail+'. Valido 15 minuti.';
-      ok.className='noti show ok';
-    }).catch(function(){
-      // Fallback: show code directly (no email configured)
-      ok.textContent='EmailJS non configurato. Codice di test: '+code;
-      ok.className='noti show ok';
+  var user=document.getElementById('rstUser').value.trim().toLowerCase();
+  var err=document.getElementById('rstErr');
+  var ok=document.getElementById('rstOk');
+  err.classList.remove('show');err.textContent='';
+  ok.className='noti';ok.textContent='';
+  if(!user){err.textContent='Inserisci email o username.';err.classList.add('show');return;}
+  if(sheetsOn()){
+    sheetsCall({action:'checkUser',email:user},function(r){
+      if(r&&r.ok){_sendResetCode(user,r.user||{name:'Utente'},ok,err);}
+      else if(r&&r.error){err.textContent=r.error;err.classList.add('show');}
+      else{_localCheckAndReset(user,ok,err);}
     });
   } else {
-    // No EmailJS: show code on screen for testing
-    ok.textContent='(Test — EmailJS non configurato) Codice: '+code;
-    ok.className='noti show ok';
+    _localCheckAndReset(user,ok,err);
   }
 }
 
@@ -865,7 +836,7 @@ function doResetPwd(){
   ok.textContent='✓ Password aggiornata! Accedi con le nuove credenziali.';
   ok.className='noti show ok';
   // Clear fields
-  ['rstUser','rstOldPwd','rstCode','rstPwd','rstPwd2'].forEach(function(id){
+  ['rstUser','rstCode','rstPwd','rstPwd2'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
   setTimeout(function(){showLTab('login');},2500);
@@ -1038,42 +1009,9 @@ function _afterRegister(userData, err){
 }
 
 // ── RESET PASSWORD ─────────────────────────────────────────────
-function doRequestReset(){
-  var user   = document.getElementById('rstUser').value.trim().toLowerCase();
-  var oldPwd = document.getElementById('rstOldPwd').value;
-  var err    = document.getElementById('rstErr');
-  var ok     = document.getElementById('rstOk');
-  err.classList.remove('show');err.textContent='';
-  ok.className='noti';ok.textContent='';
-  if(!user||!oldPwd){err.textContent='Inserisci email/username e password attuale.';err.classList.add('show');return;}
 
-  hashPwd(oldPwd).then(function(hash){
-    if(sheetsOn()){
-      sheetsCall({action:'loginUser',email:user,hash:hash},function(r){
-        if(r&&r.ok){
-          _sendResetCode(user, r.user||{name:'Utente'}, ok, err);
-        } else {
-          _localRequestReset(user, hash, ok, err);
-        }
-      });
-    } else {
-      _localRequestReset(user, hash, ok, err);
-    }
-  });
-}
 
-function _localRequestReset(user, hash, ok, err){
-  hashPwd(getAdminPwd()).then(function(adminHash){
-    if(user==='admin'&&hash===adminHash){
-      _sendResetCode(user,{name:'Amministratore'},ok,err); return;
-    }
-    try{
-      var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
-      if(users[user]&&users[user].hash===hash){_sendResetCode(user,users[user],ok,err);return;}
-    }catch(e){}
-    err.textContent='Password attuale non corretta.';err.classList.add('show');
-  });
-}
+
 
 function _sendResetCode(user, userData, ok, err){
   var code=makeCode();
@@ -1138,7 +1076,7 @@ function _localResetPwd(user, hash, ok){
 
 function _afterResetPwd(user, hash, ok){
   ok.textContent='\u2713 Password aggiornata! Accedi con le nuove credenziali.';ok.className='noti show ok';
-  ['rstUser','rstOldPwd','rstCode','rstPwd','rstPwd2'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['rstUser','rstCode','rstPwd','rstPwd2'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   setTimeout(function(){showLTab('login');},2500);
 }
 
@@ -1177,7 +1115,7 @@ function restoreUserSession(){
 
 
 
-var SHEETS_URL='https://script.google.com/macros/s/AKfycbySAdm-xYWM3CU20bM3LmetU03JsELiZDCJt6kwYIXDJ2GC_MxhtdUtLRaELueCCKs-RA/exec';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbwlB2ztPJo0jlpXYzusRfVTDjuFLESFZ4WU5YZ-yec5WYThvLKwFcXk-qhKjaGiod3vfA/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
@@ -1306,7 +1244,7 @@ var bks=[
   {id:7,date:'2026-04-14',time:'16:30',name:'Francesca Riva',svc:'Energetico Thai',price:70,dur:60,status:'pending',notes:''}
 ];
 var anns=[];
-var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===20&&m>30)&&h<=20){s.push((h<10?'0':'')+h+':'+(m===0?'00':'30'));m+=30;if(m>=60){m=0;h++;}}return s;})();
+var SLOTS=(function(){var s=[],h=8,m=0;while(!(h===21&&m>30)&&h<=21){s.push((h<10?'0':'')+h+':'+(m===0?'00':'30'));m+=30;if(m>=60){m=0;h++;}}return s;})();
 
 function fd(d){var p=d.split('-');return parseInt(p[2])+' '+MO[parseInt(p[1])-1]+' '+p[0];}
 function tm(t){var p=t.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
@@ -1318,7 +1256,7 @@ function validSlots(date,dur){
   var bb=bks.filter(function(b){return b.date===date;});
   return SLOTS.filter(function(s){
     var sm=tm(s);
-    if(sm+dur>tm('20:30'))return false;
+    if(sm+dur>tm('21:30'))return false;
     for(var i=0;i<bb.length;i++){
       var bs=tm(bb[i].time),be=bs+(bb[i].dur||60)+BUF;
       if(!(sm+dur+BUF<=bs||sm>=be))return false;
@@ -1532,7 +1470,7 @@ function renderCal(){
     var ne=document.createElement('div');ne.className='dn';ne.textContent=d;cell.appendChild(ne);
     if(db.length>0){
       var ch=document.createElement('div');ch.className='dch';
-      db.slice(0,2).forEach(function(b){var c=document.createElement('div');c.className='chip '+b.status;c.textContent=b.time+(isAdmin?' '+b.name.split(' ')[0]:'');ch.appendChild(c);});
+      db.slice(0,2).forEach(function(b){var c=document.createElement('div');c.className='chip '+b.status;c.textContent=b.time+(isAdmin?' '+b.name.split(' ')[0]:(currentUser&&b.name&&b.name.toLowerCase()===currentUser.name.toLowerCase()?' '+currentUser.name.split(' ')[0]+' ►':''));ch.appendChild(c);});
       if(db.length>2){var mo=document.createElement('div');mo.className='chip more';mo.textContent='+'+(db.length-2);ch.appendChild(mo);}
       cell.appendChild(ch);
     }else{var dr=document.createElement('div');dr.className='dr';var dt=document.createElement('div');dt.className='dot';dr.appendChild(dt);cell.appendChild(dr);}
@@ -1554,7 +1492,7 @@ function showDD(ds){
       row.className='sr '+o.b.status;
       var et=tt(tm(o.b.time)+(o.b.dur||60));
       var act=isAdmin?'<div style="display:flex;gap:4px">'+(o.b.status==='pending'?'<button class="cfb" onclick="cfBk('+o.b.id+')">CF</button>':'')+'<button class="cxb" onclick="cxBk('+o.b.id+')">X</button></div>':'<span class="sd '+o.b.status+'">'+(o.b.status==='booked'?'Conf.':'Attesa')+'</span>';
-      row.innerHTML='<div class="st">'+s+'</div><div class="sn">'+(isAdmin?o.b.name+' — ':'')+'<div style="font-size:10px;opacity:.55">fino '+et+' - '+o.b.svc+'</div></div><div class="si">'+o.b.dur+'m</div>'+act;
+      row.innerHTML='<div class="st">'+s+'</div><div class="sn">'+(isAdmin?o.b.name+' — ':(currentUser&&o.b.name&&o.b.name.toLowerCase()===currentUser.name.toLowerCase()?o.b.name+' — ':''))+'<div style="font-size:10px;opacity:.55">fino '+et+' - '+o.b.svc+'</div></div><div class="si">'+o.b.dur+'m</div>'+act;
       sl.appendChild(row);
     }else if(o&&o.t==='buf'){
       row.className='sr buf';
