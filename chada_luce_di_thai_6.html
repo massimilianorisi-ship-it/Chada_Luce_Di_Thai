@@ -254,6 +254,15 @@ input[type=number]{-moz-appearance:textfield}
   <div class="ai"><div class="adot"></div><span>Accesso come</span><span class="anm">Amministratore</span></div>
   <button class="aout" onclick="doLogout()">Esci</button>
 </div>
+<!-- User bar - visible on all tabs when logged in -->
+<div id="ubar" class="ubar" style="display:none">
+  <div class="ai">
+    <span style="font-size:14px">&#128100;</span>
+    <span class="unm" id="ubar-name"></span>
+    <span style="font-size:11px;color:rgba(201,162,80,.45)" id="ubar-email"></span>
+  </div>
+  <button class="uout" onclick="doUserLogout()">Esci</button>
+</div>
 <div class="tabs">
   <div class="tab active" data-name="tratt" onclick="showTab('tratt')">Trattamenti</div>
   <div class="tab" data-name="prenota" onclick="showTab('prenota')">Prenota</div>
@@ -310,14 +319,6 @@ input[type=number]{-moz-appearance:textfield}
 
 <!-- PRENOTA -->
 <div id="pnl-prenota" class="pnl">
-<div id="ubar" class="ubar" style="display:none">
-  <div class="ai">
-    <span style="font-size:14px">&#128100;</span>
-    <span class="unm" id="ubar-name"></span>
-    <span style="font-size:11px;color:rgba(201,162,80,.45)" id="ubar-email"></span>
-  </div>
-  <button class="uout" onclick="doUserLogout()">Esci</button>
-</div>
 <div class="noti" id="pn"></div>
 <div class="bkf" id="pform">
   <div class="bkt">Prenota il tuo trattamento</div>
@@ -364,7 +365,10 @@ input[type=number]{-moz-appearance:textfield}
     <label>Problematiche fisiche <span style="font-size:9px;opacity:.5;font-weight:normal">(visibili solo a Chada)</span></label>
     <textarea id="pfprob" placeholder="Es: cervicale, mal di schiena, gambe stanche, stress... (opzionale)" style="min-height:70px"></textarea>
   </div>
+  <div style="display:flex;gap:10px;flex-direction:column">
   <button class="btn-o" onclick="doBook()">Conferma prenotazione</button>
+  <button onclick="showTab('tratt')" style="padding:10px;background:transparent;border:.5px solid rgba(245,237,216,.2);border-radius:var(--r);font-family:'Jost',sans-serif;font-size:11px;color:rgba(245,237,216,.45);cursor:pointer;touch-action:manipulation">Annulla</button>
+</div>
 </div>
 <div class="csc" id="csc">
   <div class="cr">&#10003;</div>
@@ -1115,7 +1119,7 @@ function restoreUserSession(){
 
 
 
-var SHEETS_URL='https://script.google.com/macros/s/AKfycbzrE5WatkwTQrr7XlmJcPnNOfQa0p_oeIj1wAkLzSwNRh1tyQ-CDXDdy0ADHNqQ1BCJgQ/exec';
+var SHEETS_URL='https://script.google.com/macros/s/AKfycbwlB2ztPJo0jlpXYzusRfVTDjuFLESFZ4WU5YZ-yec5WYThvLKwFcXk-qhKjaGiod3vfA/exec';
 function sheetsOn(){return typeof SHEETS_URL!=='undefined'&&SHEETS_URL.length>10;}
 
 var _ci=0;
@@ -1294,6 +1298,9 @@ function showTab(name){
   if(name==='cal')renderCal();
   if(name==='admin'){renderList();renderAnnAdmin();}
   if(name==='tratt')renderPubAnn();
+  // Show user logout bar on all tabs when logged in
+  var ubar=document.getElementById('ubar');
+  if(ubar) ubar.style.display=(currentUser&&name!=='login')?'flex':'none';
 }
 
 
@@ -1507,7 +1514,16 @@ function showDD(ds){
   document.getElementById('ddet').style.display='block';
 }
 function qBook(date,time){
-  showTab('prenota');document.getElementById('pfd').value=date;selT=time;
+  showTab('prenota');
+  document.getElementById('pfd').value=date;
+  selT=time;
+  // Autofill name and phone from logged-in user
+  if(currentUser){
+    var pfn=document.getElementById('pfn');
+    var pfp=document.getElementById('pfp');
+    if(pfn&&!pfn.value)pfn.value=currentUser.name||'';
+    if(pfp&&!pfp.value)pfp.value=currentUser.phone||'';
+  }
   setTimeout(function(){renderSlots();document.querySelectorAll('.slot').forEach(function(s){s.classList.toggle('sel',s.dataset.t===time);});updSum();},50);
 }
 function chMo(dir){cM+=dir;if(cM>11){cM=0;cY++;}if(cM<0){cM=11;cY--;}document.getElementById('ddet').style.display='none';curDD=null;renderCal();}
