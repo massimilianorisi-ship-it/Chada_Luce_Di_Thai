@@ -257,13 +257,13 @@ input[type=number]{-moz-appearance:textfield}
 <!-- User bar - visible on all tabs when logged in -->
 <div id="ubar" class="ubar" style="display:none">
   <div class="ai">
-    <span style="font-size:14px">&#128100;</span>
-    <span class="unm" id="ubar-name"></span>
-    <span style="font-size:11px;color:rgba(201,162,80,.45)" id="ubar-email"></span>
+    <span style="font-size:16px">&#128100;</span>
+    <span class="anm" id="ubar-name"></span>
+    <span style="font-size:11px;color:rgba(201,162,80,.5);margin-left:4px" id="ubar-email"></span>
   </div>
   <button class="uout" onclick="doUserLogout()">Esci</button>
 </div>
-<div class="tabs">
+<div class="tabs" id="tabs-container">
   <div class="tab active" data-name="tratt" onclick="showTab('tratt')">Trattamenti</div>
   <div class="tab" data-name="prenota" onclick="showTab('prenota')">Prenota</div>
   <div class="tab" data-name="cal" onclick="showTab('cal')">Calendario</div>
@@ -1086,12 +1086,14 @@ function _afterResetPwd(user, hash, ok){
 
 function loginAsUser(user){
   currentUser=user; _sessionUser=user;
-  var bar=document.getElementById('ubar');if(bar)bar.style.display='flex';
-  var nm=document.getElementById('ubar-name');var em=document.getElementById('ubar-email');
-  if(nm)nm.textContent=user.name;
-  if(em)em.textContent=user.email;
+  var bar=document.getElementById('ubar');
+  if(bar)bar.style.display='flex';
+  var nm=document.getElementById('ubar-name');
+  var em=document.getElementById('ubar-email');
+  if(nm)nm.textContent=user.name||'';
+  if(em)em.textContent=user.email||'';
   var pfn=document.getElementById('pfn');var pfp=document.getElementById('pfp');
-  if(pfn&&!pfn.value)pfn.value=user.name;
+  if(pfn)pfn.value=user.name;
   if(pfp&&!pfp.value)pfp.value=user.phone||'';
   document.getElementById('tabl-login').style.display='none';
   var existing=document.querySelector('.tab[data-name="utente"]');
@@ -1298,9 +1300,13 @@ function showTab(name){
   if(name==='cal')renderCal();
   if(name==='admin'){renderList();renderAnnAdmin();}
   if(name==='tratt')renderPubAnn();
-  // Show user logout bar on all tabs when logged in
-  var ubar=document.getElementById('ubar');
-  if(ubar) ubar.style.display=(currentUser&&name!=='login')?'flex':'none';
+  if(name==='login'){var ubar=document.getElementById('ubar');if(ubar)ubar.style.display='none';}
+  if(name==='prenota'&&currentUser){
+    var pfn=document.getElementById('pfn');
+    var pfp=document.getElementById('pfp');
+    if(pfn)pfn.value=currentUser.name||'';
+    if(pfp&&!pfp.value)pfp.value=currentUser.phone||'';
+  }
 }
 
 
@@ -1377,7 +1383,9 @@ function doBook(){
   n.className='noti';updBadge();
 }
 function resetP(){
-  document.getElementById('pfn').value='';document.getElementById('pfp').value='';document.getElementById('pfd').value='';
+  document.getElementById('pfn').value=currentUser?currentUser.name:'';
+  document.getElementById('pfp').value=(currentUser&&currentUser.phone)?currentUser.phone:'';
+  document.getElementById('pfd').value='';
   selT=null;document.getElementById('pform').style.display='block';document.getElementById('csc').classList.remove('show');
   document.getElementById('sc').innerHTML='<div style="font-size:12px;color:rgba(201,162,80,.38);padding:4px 0">Seleziona prima una data</div>';
   updSum();
@@ -1521,7 +1529,7 @@ function qBook(date,time){
   if(currentUser){
     var pfn=document.getElementById('pfn');
     var pfp=document.getElementById('pfp');
-    if(pfn&&!pfn.value)pfn.value=currentUser.name||'';
+    if(pfn)pfn.value=currentUser.name||'';
     if(pfp&&!pfp.value)pfp.value=currentUser.phone||'';
   }
   setTimeout(function(){renderSlots();document.querySelectorAll('.slot').forEach(function(s){s.classList.toggle('sel',s.dataset.t===time);});updSum();},50);
