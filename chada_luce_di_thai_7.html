@@ -1474,42 +1474,60 @@ function renderPubAnn(){
 }
 function renderList(){
   var list=document.getElementById('bklist');if(!list)return;list.innerHTML='';
+  // Show ALL bookings sorted - never delete past appointments
   bks.slice().sort(function(a,b){return a.date.localeCompare(b.date)||a.time.localeCompare(b.time);}).forEach(function(b){
+    var now2=new Date(); var today=now2.toISOString().slice(0,10);
+    var isPast=b.date<today;
     var row=document.createElement('div');row.className='lr';row.id='lr'+b.id;
+    if(isPast) row.style.opacity='0.6';
     var nh=b.notes?'<div style="font-size:10px;color:rgba(201,162,80,.4);font-style:italic;margin-top:2px">'+b.notes+'</div>':'';
     var se=b.status==='pending'?'<button class="cfb" onclick="cfBk('+b.id+')">Conferma</button>':'<span class="sd booked">OK</span>';
     row.innerHTML='<div class="lc">'+fd(b.date).split(' ').slice(0,2).join(' ')+'<br><span style="font-size:10px;opacity:.45">'+b.time+'('+b.dur+'m)</span></div><div class="lc b">'+b.name+nh+'</div><div class="lc">'+b.svc+'</div><div class="lc" style="display:flex;align-items:center">'+se+'<button class="cxb" onclick="cxBk('+b.id+')">X</button></div>';
     list.appendChild(row);
   });
-  var now=new Date();
-  var ym=now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
-  // Previous month
-  var pd2=new Date(now.getFullYear(),now.getMonth()-1,1);
-  var ymprev=pd2.getFullYear()+'-'+(String(pd2.getMonth()+1).padStart(2,'0'));
 
-  var cf=bks.filter(function(b){return b.status==='booked';});
-  var pend=bks.filter(function(b){return b.status==='pending';});
-  // Current month confirmed
-  var cfMese=cf.filter(function(b){return b.date&&b.date.slice(0,7)===ym;});
-  var cfPrev=cf.filter(function(b){return b.date&&b.date.slice(0,7)===ymprev;});
+  // ── Revenue calculations ──────────────────────────────────
+  var now=new Date();
+  var thisY=now.getFullYear(), thisM=now.getMonth();
+  var prevY=thisM===0?thisY-1:thisY;
+  var prevM=thisM===0?11:thisM-1;
+  var lastY=thisY-1;
+
+  var ymThis = thisY+'-'+String(thisM+1).padStart(2,'0');
+  var ymPrev  = prevY+'-'+String(prevM+1).padStart(2,'0');
+  var MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+          'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+  var cf   = bks.filter(function(b){return b.status==='booked';});
+  var pend = bks.filter(function(b){return b.status==='pending';});
+
+  function sumRev(list){ return list.reduce(function(s,b){return s+(parseInt(b.price)||0);},0); }
+
+  var incThis = sumRev(cf.filter(function(b){return b.date&&b.date.slice(0,7)===ymThis;}));
+  var incPrev = sumRev(cf.filter(function(b){return b.date&&b.date.slice(0,7)===ymPrev;}));
+  var incYear = sumRev(cf.filter(function(b){return b.date&&b.date.slice(0,4)===String(thisY);}));
+  var incLastY= sumRev(cf.filter(function(b){return b.date&&b.date.slice(0,4)===String(lastY);}));
 
   document.getElementById('stot').textContent=bks.length;
   document.getElementById('sbk').textContent=cf.length;
   document.getElementById('spd').textContent=pend.length;
 
-  // Show current month revenue + previous month in smaller text
-  var incMese=cfMese.reduce(function(s,b){return s+(b.price||0);},0);
-  var incPrev=cfPrev.reduce(function(s,b){return s+(b.price||0);},0);
   var srvEl=document.getElementById('srv');
-  var mnNames=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  var mnCurr=mnNames[now.getMonth()];
-  var mnPrev=mnNames[pd2.getMonth()];
   if(srvEl){
-    srvEl.innerHTML='€'+incMese
-      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.45);margin-top:2px">'
-      +mnCurr+': €'+incMese+'</span>'
+    srvEl.innerHTML=
+      '<span style="font-size:15px;font-weight:500">€'+incThis+'</span>'
+      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.55);margin-top:3px">'
+        +MN[thisM]+': €'+incThis
+      +'</span>'
+      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.4)">'
+        +MN[prevM]+': €'+incPrev
+      +'</span>'
+      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.55);margin-top:3px">'
+        +thisY+': €'+incYear
+      +'</span>'
       +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.35)">'
-      +mnPrev+': €'+incPrev+'</span>';
+        +lastY+': €'+incLastY
+      +'</span>';
   }
   updBadge();
 }
