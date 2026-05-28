@@ -263,7 +263,7 @@ input[type=number]{-moz-appearance:textfield}
   </div>
   <button class="uout" onclick="doUserLogout()">Esci</button>
 </div>
-<div class="tabs">
+<div class="tabs" id="tabs-container">
   <div class="tab active" data-name="tratt" onclick="showTab('tratt')">Trattamenti</div>
   <div class="tab" data-name="prenota" onclick="showTab('prenota')">Prenota</div>
   <div class="tab" data-name="cal" onclick="showTab('cal')">Calendario</div>
@@ -595,7 +595,7 @@ input[type=number]{-moz-appearance:textfield}
   <div class="sc"><div class="sl3">Totale</div><div class="sv" id="stot">0</div></div>
   <div class="sc"><div class="sl3">Confermati</div><div class="sv r" id="sbk">0</div></div>
   <div class="sc"><div class="sl3">In attesa</div><div class="sv a" id="spd">0</div></div>
-  <div class="sc"><div class="sl3">Incasso prev.</div><div class="sv g" id="srv">&euro;0</div></div>
+  <div class="sc"><div class="sl3">Incasso mese</div><div class="sv g" id="srv">&euro;0</div></div>
 </div>
 <div class="aa">
   <button class="ab" onclick="togF('fbk')">+ Aggiungi appuntamento</button>
@@ -943,6 +943,13 @@ function _doAdminLogin(){
   document.getElementById('tabl-admin').style.display='flex';
   document.getElementById('tabl-login').style.display='none';
   document.getElementById('lgu').value='';document.getElementById('lgp').value='';
+  // Show ubar with admin info on all tabs
+  var bar=document.getElementById('ubar');
+  if(bar)bar.style.display='flex';
+  var nm=document.getElementById('ubar-name');
+  var em=document.getElementById('ubar-email');
+  if(nm)nm.textContent='Amministratore';
+  if(em)em.textContent='chadada@hotmail.it';
   showPrices(true);showTab('admin');updBadge();
 }
 
@@ -1086,21 +1093,32 @@ function _afterResetPwd(user, hash, ok){
 
 function loginAsUser(user){
   currentUser=user; _sessionUser=user;
-  var bar=document.getElementById('ubar');if(bar)bar.style.display='flex';
-  var nm=document.getElementById('ubar-name');var em=document.getElementById('ubar-email');
-  if(nm)nm.textContent=user.name;
-  if(em)em.textContent=user.email;
-  var pfn=document.getElementById('pfn');var pfp=document.getElementById('pfp');
-  if(pfn)pfn.value=user.name;
-  if(pfp&&!pfp.value)pfp.value=user.phone||'';
-  document.getElementById('tabl-login').style.display='none';
+  var bar=document.getElementById('ubar');
+  if(bar) bar.style.display='flex';
+  var nm=document.getElementById('ubar-name');
+  var em=document.getElementById('ubar-email');
+  if(nm) nm.textContent=user.name||'';
+  if(em) em.textContent=user.email||'';
+  var pfn=document.getElementById('pfn');
+  var pfp=document.getElementById('pfp');
+  if(pfn) pfn.value=user.name||'';
+  if(pfp&&!pfp.value) pfp.value=user.phone||'';
+  var tl=document.getElementById('tabl-login');
+  if(tl) tl.style.display='none';
+  var uname=user.name?user.name.split(' ')[0]:'';
   var existing=document.querySelector('.tab[data-name="utente"]');
   if(!existing){
     var tc=document.getElementById('tabs-container');
-    var t=document.createElement('div');t.className='tab';t.dataset.name='utente';
-    t.textContent='\ud83d\udc64 '+user.name.split(' ')[0];t.style.display='flex';tc.appendChild(t);
+    if(tc){
+      var t=document.createElement('div');
+      t.className='tab'; t.dataset.name='utente';
+      t.textContent='👤 '+uname;
+      t.onclick=function(){showTab('prenota');};
+      tc.appendChild(t);
+    }
   } else {
-    existing.style.display='flex';existing.textContent='\ud83d\udc64 '+user.name.split(' ')[0];
+    existing.style.display='flex';
+    existing.textContent='👤 '+uname;
   }
 }
 
@@ -1298,9 +1316,12 @@ function showTab(name){
   if(name==='cal')renderCal();
   if(name==='admin'){renderList();renderAnnAdmin();}
   if(name==='tratt')renderPubAnn();
-  // Show user logout bar on all tabs when logged in
-  var ubar=document.getElementById('ubar');
-  if(ubar) ubar.style.display=(currentUser&&name!=='login')?'flex':'none';
+  if(name==='login'){
+    var ubar=document.getElementById('ubar');if(ubar)ubar.style.display='none';
+    // If already logged in, redirect to appropriate tab
+    if(isAdmin){showTab('admin');return;}
+    if(currentUser){showTab('prenota');return;}
+  }
   if(name==='prenota'&&currentUser){
     var pfn=document.getElementById('pfn');
     var pfp=document.getElementById('pfp');
@@ -1460,11 +1481,36 @@ function renderList(){
     row.innerHTML='<div class="lc">'+fd(b.date).split(' ').slice(0,2).join(' ')+'<br><span style="font-size:10px;opacity:.45">'+b.time+'('+b.dur+'m)</span></div><div class="lc b">'+b.name+nh+'</div><div class="lc">'+b.svc+'</div><div class="lc" style="display:flex;align-items:center">'+se+'<button class="cxb" onclick="cxBk('+b.id+')">X</button></div>';
     list.appendChild(row);
   });
-  var cf=bks.filter(function(b){return b.status==='booked';}),pd=bks.filter(function(b){return b.status==='pending';});
+  var now=new Date();
+  var ym=now.getFullYear()+'-'+(String(now.getMonth()+1).padStart(2,'0'));
+  // Previous month
+  var pd2=new Date(now.getFullYear(),now.getMonth()-1,1);
+  var ymprev=pd2.getFullYear()+'-'+(String(pd2.getMonth()+1).padStart(2,'0'));
+
+  var cf=bks.filter(function(b){return b.status==='booked';});
+  var pend=bks.filter(function(b){return b.status==='pending';});
+  // Current month confirmed
+  var cfMese=cf.filter(function(b){return b.date&&b.date.slice(0,7)===ym;});
+  var cfPrev=cf.filter(function(b){return b.date&&b.date.slice(0,7)===ymprev;});
+
   document.getElementById('stot').textContent=bks.length;
   document.getElementById('sbk').textContent=cf.length;
-  document.getElementById('spd').textContent=pd.length;
-  document.getElementById('srv').textContent='E'+cf.reduce(function(s,b){return s+b.price;},0);
+  document.getElementById('spd').textContent=pend.length;
+
+  // Show current month revenue + previous month in smaller text
+  var incMese=cfMese.reduce(function(s,b){return s+(b.price||0);},0);
+  var incPrev=cfPrev.reduce(function(s,b){return s+(b.price||0);},0);
+  var srvEl=document.getElementById('srv');
+  var mnNames=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  var mnCurr=mnNames[now.getMonth()];
+  var mnPrev=mnNames[pd2.getMonth()];
+  if(srvEl){
+    srvEl.innerHTML='€'+incMese
+      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.45);margin-top:2px">'
+      +mnCurr+': €'+incMese+'</span>'
+      +'<span style="display:block;font-size:11px;color:rgba(201,162,80,.35)">'
+      +mnPrev+': €'+incPrev+'</span>';
+  }
   updBadge();
 }
 function cfBk(id){var b=bks.find(function(x){return x.id===id;});if(b){b.status='booked';sheetsSave({action:'update',id:id,status:'booked'});}renderList();renderCal();if(curDD)showDD(curDD);}
