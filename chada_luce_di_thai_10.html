@@ -735,6 +735,58 @@ function makeCode(){
 }
 
 // ── REGISTRAZIONE + EMAIL CONFERMA ───────────────────────────
+function doRegister(){
+  var name  = document.getElementById('rname').value.trim();
+  var email = document.getElementById('remail').value.trim().toLowerCase();
+  var phone = document.getElementById('rphone').value.trim();
+  var pwd   = document.getElementById('rpwd').value;
+  var pwd2  = document.getElementById('rpwd2').value;
+  var err   = document.getElementById('rerr');
+
+  if(!name||!email||!pwd){err.textContent='Compila nome, email e password.';err.classList.add('show');return;}
+  if(pwd.length<6){err.textContent='Password min. 6 caratteri.';err.classList.add('show');return;}
+  if(pwd!==pwd2){err.textContent='Le password non coincidono.';err.classList.add('show');return;}
+  if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)){err.textContent='Email non valida.';err.classList.add('show');return;}
+
+  var users = getUsers();
+  if(users[email]){err.textContent='Email già registrata.';err.classList.add('show');return;}
+
+  // Salva utente
+  users[email] = {name:name, email:email, phone:phone, pwd:pwd, confirmed:!ejsReady()};
+  saveUsers(users);
+
+  // Invia email di conferma
+  if(ejsReady() && EJS_TEMPLATE_REG){
+    var code = makeCode();
+    users[email].confirmCode = code;
+    saveUsers(users);
+    sendEmail(EJS_TEMPLATE_REG, {
+      to_name:  name,
+      to_email: email,
+      code:     code,
+      app_name: 'Chada Luce di Thai'
+    }).catch(function(e){ console.warn('Email conferma:', e); });
+    err.classList.remove('show');
+    // Show confirmation message
+    var ok = document.getElementById('rerr');
+    ok.style.background='rgba(40,100,20,.35)';
+    ok.style.color='#a0e060';
+    ok.style.border='.5px solid rgba(80,180,40,.4)';
+    ok.textContent='✓ Account creato! Controlla la tua email per il codice di conferma.';
+    ok.classList.add('show');
+    // Auto-login anyway
+    setTimeout(function(){
+      ok.classList.remove('show');
+      loginAsUser(users[email]);
+      showTab('prenota');
+    }, 3000);
+  } else {
+    // No EmailJS — login directly
+    err.classList.remove('show');
+    loginAsUser(users[email]);
+    showTab('prenota');
+  }
+}
 
 // ── RICHIESTA RESET (verifica vecchia password, invia codice) ─
 function doRequestReset(){
@@ -756,8 +808,48 @@ function doRequestReset(){
 }
 
 // ── IMPOSTA NUOVA PASSWORD (con codice ricevuto) ──────────────
+function doResetPwd(){
+  var user = document.getElementById('rstUser').value.trim().toLowerCase();
+  var code = document.getElementById('rstCode').value.trim();
+  var pwd  = document.getElementById('rstPwd').value;
+  var pwd2 = document.getElementById('rstPwd2').value;
+  var err  = document.getElementById('rstErr');
+  var ok   = document.getElementById('rstOk');
+  err.classList.remove('show'); err.textContent='';
+  ok.className='noti'; ok.textContent='';
+
+  if(!user||!code||!pwd){err.textContent='Compila tutti i campi.';err.classList.add('show');return;}
+  if(pwd.length<6){err.textContent='Password min. 6 caratteri.';err.classList.add('show');return;}
+  if(pwd!==pwd2){err.textContent='Le password non coincidono.';err.classList.add('show');return;}
+
+  var reset = pendingResets[user];
+  if(!reset){err.textContent='Nessun ripristino in corso. Clicca "Invia link di ripristino".';err.classList.add('show');return;}
+  if(Date.now() > reset.expires){err.textContent='Codice scaduto. Richiedine uno nuovo.';err.classList.add('show');delete pendingResets[user];return;}
+  if(code !== reset.code){err.textContent='Codice non corretto.';err.classList.add('show');return;}
+
+  // Apply new password
+  if(user==='admin'){
+    localStorage.setItem('chada_admin_pwd', pwd);
+  } else {
+    var users=getUsers();
+    if(users[user]){ users[user].pwd=pwd; saveUsers(users); }
+    else { err.textContent='Utente non trovato.';err.classList.add('show');return; }
+  }
+
+  delete pendingResets[user];
+  ok.textContent='✓ Password aggiornata! Accedi con le nuove credenziali.';
+  ok.className='noti show ok';
+  // Clear fields
+  ['rstUser','rstCode','rstPwd','rstPwd2'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  setTimeout(function(){showLTab('login');},2500);
+}
 
 // ── USER SYSTEM ───────────────────────────────────────────────
+// Users stored in localStorage: {email: {name,email,phone,pwd,secAnswer}}
+// Admin password stored in localStorage too (default: chada2024)
+var ADMIN_SEC_ANSWER = 'energetico thai'; // risposta sicurezza admin (lowercase)
 var currentUser = null; // oggetto utente loggato (non admin)
 
 function getUsers(){
@@ -779,6 +871,11 @@ async function hashPwd(pwd){
 // Session cache (tab lifetime only - never stored on disk)
 var _sessionUser = null;
 
+function getAdminPwd(){
+  // Admin password is managed via Sheets - local fallback only
+  return localStorage.getItem('chada_admin_pwd')||'chada2024';
+}
+
 // ── LOGIN ──────────────────────────────────────────────────────
 function doLogin(){
   var u = document.getElementById('lgu').value.trim().toLowerCase();
@@ -793,22 +890,21 @@ function doLogin(){
   err.classList.add('show');
 
   hashPwd(p).then(function(hash){
+    // Try Sheets first (multi-device)
     if(sheetsOn()){
       sheetsCall({action:'loginUser', email:u, hash:hash}, function(r){
         if(r&&r.ok){
           err.classList.remove('show');
-          authToken=r.token||'';
-          document.getElementById('lgp').value='';
           if(r.role==='admin'){
             _doAdminLogin();
           } else {
             loginAsUser(r.user);
             showTab('prenota');
           }
-          loadFromSheets();
         } else if(r&&r.error){
           err.textContent=r.error;err.style.background='rgba(150,20,20,.35)';err.style.color='#f09090';err.classList.add('show');
         } else {
+          // Sheets unavailable - fallback to local
           _localLogin(u, hash);
         }
       });
@@ -820,18 +916,25 @@ function doLogin(){
 
 function _localLogin(u, hash){
   var err = document.getElementById('lerr');
-  function fail(msg){err.textContent=msg;err.style.background='rgba(150,20,20,.35)';err.style.color='#f09090';err.classList.add('show');}
-  if(u==='admin'){fail('Accesso admin non verificabile: server non raggiungibile. Riprova.');return;}
-  try{
-    var users = JSON.parse(localStorage.getItem('chada_users')||'{}');
-    if(users[u]&&users[u].hash===hash){
+  // Admin local fallback
+  hashPwd(getAdminPwd()).then(function(adminHash){
+    if(u==='admin'&&hash===adminHash){
       err.classList.remove('show');
-      loginAsUser(users[u]);
-      showTab('prenota');
+      _doAdminLogin();
       return;
     }
-  }catch(e){}
-  fail('Credenziali non valide.');
+    // User local fallback
+    try{
+      var users = JSON.parse(localStorage.getItem('chada_users')||'{}');
+      if(users[u]&&users[u].hash===hash){
+        err.classList.remove('show');
+        loginAsUser(users[u]);
+        showTab('prenota');
+        return;
+      }
+    }catch(e){}
+    err.textContent='Credenziali non valide.';err.style.background='rgba(150,20,20,.35)';err.style.color='#f09090';err.classList.add('show');
+  });
 }
 
 function _doAdminLogin(){
@@ -867,22 +970,25 @@ function doRegister(){
   err.textContent='Registrazione in corso...';err.style.background='rgba(74,37,0,.4)';err.style.color='rgba(201,162,80,.7)';err.classList.add('show');
 
   hashPwd(pwd).then(function(hash){
-    var userData = {name:name, email:email, phone:phone, role:'user'};
+    var userData = {name:name, email:email, phone:phone, hash:hash, role:'user'};
+
     if(sheetsOn()){
       sheetsCall({action:'registerUser', name:name, email:email, phone:phone, hash:hash}, function(r){
         if(r&&r.ok){
-          authToken=r.token||'';
+          // Also cache locally
+          try{
+            var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
+            users[email]=userData; localStorage.setItem('chada_users',JSON.stringify(users));
+          }catch(e){}
           _afterRegister(userData, err);
-          loadFromSheets();
         } else if(r&&r.error){
           err.textContent=r.error;err.style.background='rgba(150,20,20,.35)';err.style.color='#f09090';err.classList.add('show');
         } else {
-          userData.hash=hash;
+          // Sheets unavailable - save locally
           _localRegister(userData, err);
         }
       });
     } else {
-      userData.hash=hash;
       _localRegister(userData, err);
     }
   });
@@ -918,28 +1024,66 @@ function _afterRegister(userData, err){
 
 
 
+function _sendResetCode(user, userData, ok, err){
+  var code=makeCode();
+  pendingResets[user]={code:code,expires:Date.now()+15*60*1000};
+  var targetEmail=user==='admin'?'chadada@hotmail.it':user;
+  var targetName=userData.name||user;
+  if(ejsReady()&&EJS_TEMPLATE_RST){
+    sendEmail(EJS_TEMPLATE_RST,{to_name:targetName,to_email:targetEmail,code:code,app_name:'Chada Luce di Thai',expires:'15 minuti'})
+      .then(function(){ok.textContent='\u2713 Codice inviato a '+targetEmail;ok.className='noti show ok';})
+      .catch(function(){ok.textContent='(Test) Codice: '+code;ok.className='noti show ok';});
+  } else {
+    ok.textContent='(EmailJS non configurato) Codice: '+code;ok.className='noti show ok';
+  }
+}
 
 function doResetPwd(){
   var user=document.getElementById('rstUser').value.trim().toLowerCase();
   var code=document.getElementById('rstCode').value.trim();
-  var pwd=document.getElementById('rstPwd').value;
+  var pwd =document.getElementById('rstPwd').value;
   var pwd2=document.getElementById('rstPwd2').value;
-  var err=document.getElementById('rstErr');
-  var ok=document.getElementById('rstOk');
+  var err =document.getElementById('rstErr');
+  var ok  =document.getElementById('rstOk');
   err.classList.remove('show');err.textContent='';ok.className='noti';ok.textContent='';
+
   if(!user||!code||!pwd){err.textContent='Compila tutti i campi.';err.classList.add('show');return;}
   if(pwd.length<6){err.textContent='Password min. 6 caratteri.';err.classList.add('show');return;}
-  if(user==='admin'&&pwd.length<10){err.textContent='La password admin deve avere almeno 10 caratteri.';err.classList.add('show');return;}
   if(pwd!==pwd2){err.textContent='Le password non coincidono.';err.classList.add('show');return;}
-  if(!sheetsOn()){err.textContent='Servizio non disponibile.';err.classList.add('show');return;}
+
+  var reset=pendingResets[user];
+  if(!reset){err.textContent='Prima clicca "Invia link di ripristino".';err.classList.add('show');return;}
+  if(Date.now()>reset.expires){err.textContent='Codice scaduto.';err.classList.add('show');delete pendingResets[user];return;}
+  if(code!==reset.code){err.textContent='Codice non corretto.';err.classList.add('show');return;}
+
   hashPwd(pwd).then(function(hash){
-    sheetsCall({action:'resetPassword',email:user,code:code,hash:hash},function(r){
-      if(r&&r.ok){_afterResetPwd(user,hash,ok);}
-      else{err.textContent=(r&&r.error)?r.error:'Server non raggiungibile. Riprova.';err.classList.add('show');}
-    });
+    if(sheetsOn()){
+      sheetsCall({action:'updatePwd',email:user,hash:hash},function(r){
+        if(r&&r.ok){
+          _afterResetPwd(user,hash,ok);
+        } else {
+          _localResetPwd(user,hash,ok);
+        }
+      });
+    } else {
+      _localResetPwd(user,hash,ok);
+    }
   });
+  delete pendingResets[user];
 }
 
+function _localResetPwd(user, hash, ok){
+  if(user==='admin'){
+    // Store hashed admin pwd locally (will sync next time)
+    localStorage.setItem('chada_admin_hash', hash);
+  } else {
+    try{
+      var users=JSON.parse(localStorage.getItem('chada_users')||'{}');
+      if(users[user]){users[user].hash=hash;localStorage.setItem('chada_users',JSON.stringify(users));}
+    }catch(e){}
+  }
+  _afterResetPwd(user, hash, ok);
+}
 
 function _afterResetPwd(user, hash, ok){
   ok.textContent='\u2713 Password aggiornata! Accedi con le nuove credenziali.';ok.className='noti show ok';
@@ -979,8 +1123,6 @@ function loginAsUser(user){
 }
 
 function doUserLogout(){
-  if(isAdmin){doLogout();return;}
-  endSession();
   currentUser=null;_sessionUser=null;
   var bar=document.getElementById('ubar');if(bar)bar.style.display='none';
   var ut=document.querySelector('.tab[data-name="utente"]');if(ut)ut.style.display='none';
