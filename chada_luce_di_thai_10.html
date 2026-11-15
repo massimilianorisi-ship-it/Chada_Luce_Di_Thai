@@ -744,15 +744,16 @@ function doRequestReset(){
   err.classList.remove('show');err.textContent='';
   ok.className='noti';ok.textContent='';
   if(!user){err.textContent='Inserisci email o username.';err.classList.add('show');return;}
-    if(sheetsOn()){
-    sheetsCall({action:'checkUser',email:user},function(r){
-      if(r&&r.ok){_sendResetCode(user,r.user||{name:'Utente'},ok,err);}
-      else if(r&&r.error){err.textContent=r.error;err.classList.add('show');}
-      else{_localCheckAndReset(user,ok,err);}
-    });
-  } else {
-    _localCheckAndReset(user,ok,err);
-  }
+  if(!sheetsOn()){err.textContent='Servizio non disponibile.';err.classList.add('show');return;}
+  ok.textContent='Invio del codice in corso...';ok.className='noti show ok';
+  sheetsCall({action:'requestReset',email:user},function(r){
+    if(r&&r.ok){
+      ok.textContent='\u2713 Codice inviato a '+(r.to||'la tua email')+'. Valido 15 minuti.';ok.className='noti show ok';
+    } else {
+      ok.className='noti';ok.textContent='';
+      err.textContent=(r&&r.error)?r.error:'Server non raggiungibile. Riprova.';err.classList.add('show');
+    }
+  });
 }
 
 // ── IMPOSTA NUOVA PASSWORD (con codice ricevuto) ──────────────
